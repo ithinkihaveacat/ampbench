@@ -587,6 +587,12 @@
       "regex": [
         "<script[\\s\\S]*googleads\\.g\\.doubleclick\\.net/pagead/viewthroughconversion[\\s\\S]*script>"
       ]
+    },
+    "Bing Ads": {
+      "category": "Ads",
+      "regex": [
+        "<script[\\s\\S]*bat\\.bing\\.com/bat.js[\\s\\S]*script>"
+      ]
     }
   }
 }

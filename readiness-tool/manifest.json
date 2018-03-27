@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "AMP Readiness Tool",
   "description": "See at a glance the various third party vendors on the page and whether they have AMP support.",
-  "version": "2.10",
+  "version": "2.11",
   "options_page": "options.html",
   "icons": {
     "16": "amp-readiness.png",
@@ -29,7 +29,8 @@
       "all_frames": false,
       "run_at": "document_end",
       "exclude_globs": [
-        "*.corp.google.com/*"
+        "*.corp.google.com/*",
+        "*.google.com/*"
       ]
     }
   ],

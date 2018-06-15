@@ -1,0 +1,28 @@
+{
+  "name": "amp-story-linter",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "author": "Michael Stillwell <mjs@beebo.org>",
+  "dependencies": {
+    "@types/cheerio": "^0.22.7",
+    "amphtml-validator": "^1.0.23",
+    "cheerio": "^1.0.0-rc.2",
+    "node-fetch": "^2.1.2",
+    "throat": "^4.1.0"
+  },
+  "main": "dist/commonjs/index.js",
+  "types": "dist/commonjs/index.d.ts",
+  "scripts": {
+    "preversion": "$npm_execpath test",
+    "prepare": "rm -rf dist && tsc -p tsconfig.json --sourceMap -d --module commonjs --outDir dist/commonjs && cp validator.js dist/commonjs",
+    "postpublish": "git push && git push --tags",
+    "update-validator": "curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js"
+  },
+  "devDependencies": {
+    "@types/diff": "^3.5.1",
+    "@types/node-fetch": "^2.1.1",
+    "diff": "^3.5.0",
+    "tslint": "^5.10.0",
+    "typescript": "^2.9.1"
+  }
+}

@@ -2,11 +2,13 @@
   "name": "amp-story-linter-gae",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "install-local-dependencies": "rm -rf amp-story-linter && npm pack ../linter && tar xfz amp-story-linter-0.0.1.tgz && mv package amp-story-linter && rm amp-story-linter-0.0.1.tgz",
     "deploy": "$npm_execpath run install-local-dependencies && tsc && gcloud app deploy",
     "start": "node app.js"
+  },
+  "engines": {
+    "node": "8.x.x"
   },
   "author": "Michael Stillwell <mjs@beebo.org>",
   "license": "Apache-2.0",

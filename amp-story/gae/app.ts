@@ -14,12 +14,22 @@
  * limitations under the License.
  */
 
+import * as fs from "fs";
+
 import express = require("express");
+import {compile} from "handlebars";
 
 import ampCors from "./amp-cors.js";
 import * as validate from "./amp-story-linter";
 
-const ORIGIN = `https://{process.env.PROJECT_ID}.appspot.com`;
+const ORIGIN = process.env.ORIGIN || `https://${process.env.PROJECT_ID}.appspot.com`;
+
+const INDEX = (() => {
+  const template = compile(fs.readFileSync("index.hbs").toString());
+  return template({
+    canonical: ORIGIN,
+  });
+})();
 
 const app = express();
 
@@ -34,9 +44,9 @@ app.use(ampCors(ORIGIN));
 
 app.get("/", (req, res) => {
   res.status(200);
-  res.setHeader("content-type", "text/plain");
+  res.setHeader("content-type", "text/html");
   // res.send(JSON.stringify(req.query));
-  res.send("hi");
+  res.send(INDEX);
   res.end();
 });
 

@@ -15,16 +15,36 @@
  */
 
 import * as fs from "fs";
+import {URL} from "url";
 
+import * as cheerio from "cheerio";
 import express = require("express");
-import {compile} from "handlebars";
+import {compile, registerHelper} from "handlebars";
+import {default as fetch, Request, RequestInit, Response} from "node-fetch";
 
 import ampCors from "./amp-cors.js";
 import * as validate from "./amp-story-linter";
 
+const UA_GOOGLEBOT_MOBILE = [
+  "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36",
+  "(KHTML, like Gecko) Chrome/41.0.2272.96 Mobile Safari/537.36",
+  "(compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+].join(" ");
+
 const ORIGIN = process.env.ORIGIN || `https://${process.env.PROJECT_ID}.appspot.com`;
 
+const PORT = (() => {
+  if (process.env.NODE_ENV === "production") {
+    return 8080;
+  } else {
+    return (new URL(ORIGIN)).port || 80;
+  }
+})();
+
 const INDEX = (() => {
+  registerHelper("escape", (name) => {
+    return `{{${name}}}`;
+  });
   const template = compile(fs.readFileSync("index.hbs").toString());
   return template({
     canonical: ORIGIN,
@@ -50,8 +70,54 @@ app.get("/", (req, res) => {
   res.end();
 });
 
-const PORT = process.env.PORT || 8080;
+app.get("/lint", async (req, res, next) => {
+  const url = req.query.url;
+  if (!url) {
+    res.status(400);
+    res.setHeader("content-type", "application/json");
+    res.send(JSON.stringify({
+      message: "no [url] query string parameter provided",
+      status: "error",
+    }));
+    res.end();
+    return;
+  }
+
+  try {
+    const r = await fetch(url, {
+      headers: {
+        "user-agent": UA_GOOGLEBOT_MOBILE,
+      },
+    });
+    if (!r.ok) {
+      res.status(400);
+      res.setHeader("content-type", "application/json");
+      res.send(JSON.stringify({
+        message: `couldn't load [${url}]`,
+        status: "error",
+      }));
+      res.end();
+      return;
+    }
+    const $ = cheerio.load(await r.text());
+    const data = await validate.testAll($, url);
+    res.status(200);
+    res.setHeader("content-type", "text/json");
+    res.send(JSON.stringify(data, undefined, 2));
+    res.end();
+  } catch (e) {
+    console.error(e);
+    res.status(e.code === "ENOTFOUND" ? 400 : 500); // probably caller's fault if ENOTFOUND
+    res.setHeader("content-type", "application/json");
+    res.send(JSON.stringify({
+      message: `couldn't load [${url}]`,
+      status: "error",
+    }));
+    res.end();
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`App listening on port ${PORT}`);
+  console.log(`App listening at ${ORIGIN}`);
   console.log("Press Ctrl+C to quit.");
 });

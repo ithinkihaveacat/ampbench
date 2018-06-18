@@ -5,6 +5,7 @@
   "scripts": {
     "install-local-dependencies": "rm -rf amp-story-linter && npm pack ../linter && tar xfz amp-story-linter-0.0.1.tgz && mv package amp-story-linter && rm amp-story-linter-0.0.1.tgz",
     "deploy": "$npm_execpath run install-local-dependencies && tsc && gcloud app deploy --project $PROJECT_ID",
+    "watch": "ls *.ts *.hbs | entr -r bash -c 'tsc && node app.js'",
     "start": "node app.js"
   },
   "engines": {
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@types/express": "^4.16.0",
     "@types/handlebars": "^4.0.38",
+    "@types/node-fetch": "^2.1.1",
     "tslint": "^5.10.0",
     "typescript": "^2.9.2"
   }

@@ -338,7 +338,6 @@ async function testAll($: CheerioStatic, url: string) {
     testBookendSameOrigin,
     testBookendCache,
     testVideoSource,
-    testVideoSize,
     testMostlyText,
   ];
   const res = await Promise.all(tests.map((f) => f($, url).then((v: any) => [

@@ -31,7 +31,7 @@ interface Message {
   message?: string|ActualExpected,
 };
 
-const OKAY = (): Promise<Message> => Promise.resolve({status: "OKAY"});
+const PASS = (): Promise<Message> => Promise.resolve({status: "OKAY"});
 const FAIL = (s: string|ActualExpected): Promise<Message> => {
   return Promise.resolve({status: "FAIL", message: s});
 };
@@ -82,7 +82,7 @@ function getMetadata($: CheerioStatic) {
 
 function testValidity($: CheerioStatic, url: string) {
   const res = validator.validateString($.html());
-  return Promise.resolve(res.status === "OKAY" ? OKAY() : res);
+  return res.status === "PASS" ? PASS() : res;
 }
 
 function testCanonical($: CheerioStatic, url: string) {
@@ -95,7 +95,7 @@ function testCanonical($: CheerioStatic, url: string) {
   }
   return getUrl(canonical).then((s) => {
     if (s === canonical) {
-      return OKAY();
+      return PASS();
      } else {
        return FAIL({
          actual: s,
@@ -114,7 +114,7 @@ function testMetadataArticle($: CheerioStatic, url: string) {
   if (type !== "Article" && type !== "NewsArticle" && type !== "ReportageNewsArticle") {
     return WARNING(`@type is not 'Article' or 'NewsArticle' or 'ReportageNewsArticle'`);
   } else {
-    return OKAY();
+    return PASS();
   }
 }
 
@@ -137,7 +137,7 @@ function testMetadataRecent($: CheerioStatic, url: string) {
     return FAIL(`dateModified [${dateModified}] is earlier than datePublished [${datePublished}]`);
   }
   if (inLastMonth(timePublished) && inLastMonth(timeModified)) {
-    return OKAY();
+    return PASS();
   } else {
     return WARNING(`datePublished [${datePublished}] or dateModified [${dateModified}] is old or in the future`);
   }
@@ -145,7 +145,7 @@ function testMetadataRecent($: CheerioStatic, url: string) {
 
 function testAmpStory($: CheerioStatic, url: string) {
   if ($("body amp-story[standalone]").length === 1) {
-    return OKAY();
+    return PASS();
   } else {
     return FAIL(`couldn't find <amp-story standalone> component`);
   }
@@ -166,7 +166,7 @@ function testVideoSize($: CheerioStatic, base: string) {
     if (large.length > 0) {
       return FAIL(`videos over 4MB: [${large.join(",")}]`);
     } else {
-      return OKAY();
+      return PASS();
     }
   });
 }
@@ -273,7 +273,7 @@ function canXhrSameOrigin(url: string, xhrUrl: string) {
   return fetch(addSourceOrigin(xhrUrl, sourceOrigin), {headers})
     .then(isStatusOk)
     .then(isJson)
-    .then(OKAY, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
+    .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
 function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
@@ -290,7 +290,7 @@ function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
     .then(isStatusOk)
     .then(isAccessControlHeaders(origin, sourceOrigin))
     .then(isJson)
-    .then(OKAY, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
+    .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
 function testBookendSameOrigin($: CheerioStatic, url: string) {
@@ -315,14 +315,14 @@ function testVideoSource($: CheerioStatic, url: string) {
   if ($("amp-video[src]").length > 0) {
     return FAIL("<amp-video src> used instead of <amp-video><source/></amp-video>");
   } else {
-    return OKAY();
+    return PASS();
   }
 }
 
 function testMostlyText($: CheerioStatic, url: string) {
   const text = $("amp-story").text();
   if (text.length > 100) {
-    return OKAY();
+    return PASS();
   } else {
     return WARNING(`minimal text in the story [${text}]`);
   }
@@ -341,7 +341,7 @@ async function testAll($: CheerioStatic, url: string) {
     testVideoSize,
     testMostlyText,
   ];
-  const res = await Promise.all(tests.map((f) => f($, url).then((v) => [
+  const res = await Promise.all(tests.map((f) => f($, url).then((v: any) => [
     f.name.substring("test".length).toLowerCase(), // key
     v, // value
   ]))) as Array<[string, any]>; // not sure why this cast is necessary, but...

@@ -293,6 +293,14 @@ function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
     .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
+function testStoryV1($: CheerioStatic) {
+  if ($("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0) {
+    return PASS();
+  } else {
+    return WARNING("amp-story-1.0.js not used (probably 0.1?)");
+  }
+}
+
 function testBookendSameOrigin($: CheerioStatic, url: string) {
   const bookendConfigSrc = $("amp-story").attr("bookend-config-src");
   if (!bookendConfigSrc) { return WARNING("bookend-config-src missing"); }
@@ -339,6 +347,7 @@ async function testAll($: CheerioStatic, url: string) {
     testBookendCache,
     testVideoSource,
     testMostlyText,
+    testStoryV1,
   ];
   const res = await Promise.all(tests.map((f) => f($, url).then((v: any) => [
     f.name.substring("test".length).toLowerCase(), // key
@@ -360,6 +369,7 @@ export {
   testMetadataArticle,
   testMetadataRecent,
   testMostlyText,
+  testStoryV1,
   testValidity,
   testVideoSize,
   testVideoSource,

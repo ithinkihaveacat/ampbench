@@ -293,11 +293,23 @@ function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
     .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
+function isStoryV1($: CheerioStatic) {
+  return $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
+}
+
 function testStoryV1($: CheerioStatic) {
-  if ($("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0) {
-    return PASS();
+  return isStoryV1($) ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
+}
+
+function testStoryV1Metadata($: CheerioStatic) {
+  if (!isStoryV1($)) return PASS();
+  const attr = [ "title", "publisher", "publisher-logo-src", "poster-portrait-src" ]
+    .map(attr => $(`amp-story[${attr}]`).length > 0 ? false : attr)
+    .filter(Boolean);
+  if (attr.length > 0) {
+    return WARNING(`<amp-story> is missing attribute(s) that will soon be mandatory: [${attr.join(", ")}]`);
   } else {
-    return WARNING("amp-story-1.0.js not used (probably 0.1?)");
+    PASS();
   }
 }
 
@@ -348,6 +360,7 @@ async function testAll($: CheerioStatic, url: string) {
     testVideoSource,
     testMostlyText,
     testStoryV1,
+    testStoryV1Metadata,
   ];
   const res = await Promise.all(tests.map((f) => f($, url).then((v: any) => [
     f.name.substring("test".length).toLowerCase(), // key
@@ -370,6 +383,7 @@ export {
   testMetadataRecent,
   testMostlyText,
   testStoryV1,
+  testStoryV1Metadata,
   testValidity,
   testVideoSize,
   testVideoSource,

@@ -340,7 +340,6 @@ function testStoryV1Metadata($: CheerioStatic) {
 
 function testMetaCharsetFirst($: CheerioStatic, url: string) {
   const firstChild = $("head *:first-child");
-  console.log(firstChild[0].tagName);
   // const charset = firstChild.attr("charset")
   return PASS();
 }

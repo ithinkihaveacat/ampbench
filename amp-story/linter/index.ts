@@ -21,12 +21,12 @@ const UA_GOOGLEBOT_MOBILE = [
   "(compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
 ].join(" ");
 
-interface ActualExpected {
+export interface ActualExpected {
   actual: string,
   expected: string,
 }
 
-interface Message {
+export interface Message {
   status: string,
   message?: string|ActualExpected,
 };
@@ -82,7 +82,7 @@ function getMetadata($: CheerioStatic) {
 
 function testValidity($: CheerioStatic, url: string) {
   const res = validator.validateString($.html());
-  return res.status === "PASS" ? PASS() : res;
+  return Promise.resolve(res.status === "PASS" ? PASS() : res);
 }
 
 function testCanonical($: CheerioStatic, url: string) {
@@ -273,7 +273,7 @@ function canXhrSameOrigin(url: string, xhrUrl: string) {
   return fetch(addSourceOrigin(xhrUrl, sourceOrigin), {headers})
     .then(isStatusOk)
     .then(isJson)
-    .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
+    .then(PASS, (e: Error) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
 function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
@@ -293,28 +293,8 @@ function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
     .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
-function isStoryV1($: CheerioStatic) {
-  return $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
-}
-
-function testStoryV1($: CheerioStatic) {
-  return isStoryV1($) ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
-}
-
-function testStoryV1Metadata($: CheerioStatic) {
-  if (!isStoryV1($)) return PASS();
-  const attr = [ "title", "publisher", "publisher-logo-src", "poster-portrait-src" ]
-    .map(attr => $(`amp-story[${attr}]`).length > 0 ? false : attr)
-    .filter(Boolean);
-  if (attr.length > 0) {
-    return WARNING(`<amp-story> is missing attribute(s) that will soon be mandatory: [${attr.join(", ")}]`);
-  } else {
-    PASS();
-  }
-}
-
 function testBookendSameOrigin($: CheerioStatic, url: string) {
-  const bookendConfigSrc = $("amp-story").attr("bookend-config-src");
+  const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
   if (!bookendConfigSrc) { return WARNING("bookend-config-src missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
@@ -323,7 +303,7 @@ function testBookendSameOrigin($: CheerioStatic, url: string) {
 }
 
 function testBookendCache($: CheerioStatic, url: string) {
-  const bookendConfigSrc = $("amp-story").attr("bookend-config-src");
+  const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
   if (!bookendConfigSrc) { return WARNING("bookend-config-src missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
@@ -337,6 +317,32 @@ function testVideoSource($: CheerioStatic, url: string) {
   } else {
     return PASS();
   }
+}
+
+function testAmpStoryV1($: CheerioStatic, url: string) {
+  const isV1 = $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
+  return isV1 ? PASS() : WARNING('amp-story-1.0.js not used (probably 0.1?)');
+}
+
+/*
+function testStoryV1Metadata($: CheerioStatic) {
+  if (!isStoryV1($)) return PASS();
+  const attr = [ "title", "publisher", "publisher-logo-src", "poster-portrait-src" ]
+    .map(attr => $(`amp-story[${attr}]`).length > 0 ? false : attr)
+    .filter(Boolean);
+  if (attr.length > 0) {
+    return WARNING(`<amp-story> is missing attribute(s) that will soon be mandatory: [${attr.join(", ")}]`);
+  } else {
+    PASS();
+  }
+}
+*/
+
+function testMetaCharsetFirst($: CheerioStatic, url: string) {
+  const firstChild = $("head *:first-child");
+  console.log(firstChild[0].tagName);
+  // const charset = firstChild.attr("charset")
+  return PASS();
 }
 
 function testMostlyText($: CheerioStatic, url: string) {
@@ -353,16 +359,16 @@ async function testAll($: CheerioStatic, url: string) {
     testValidity,
     testCanonical,
     testAmpStory,
+    testAmpStoryV1,
     testMetadataRecent,
     testMetadataArticle,
     testBookendSameOrigin,
     testBookendCache,
     testVideoSource,
+    testVideoSize,
     testMostlyText,
-    testStoryV1,
-    testStoryV1Metadata,
   ];
-  const res = await Promise.all(tests.map((f) => f($, url).then((v: any) => [
+  const res = await Promise.all(tests.map((f) => f($, url).then((v) => [
     f.name.substring("test".length).toLowerCase(), // key
     v, // value
   ]))) as Array<[string, any]>; // not sure why this cast is necessary, but...
@@ -376,17 +382,17 @@ async function testAll($: CheerioStatic, url: string) {
 export {
   testAll,
   testAmpStory,
+  testAmpStoryV1,
   testBookendCache,
   testBookendSameOrigin,
   testCanonical,
   testMetadataArticle,
   testMetadataRecent,
   testMostlyText,
-  testStoryV1,
-  testStoryV1Metadata,
   testValidity,
   testVideoSize,
   testVideoSource,
+  testMetaCharsetFirst,
 };
 
 if (require.main === module) { // invoked directly?

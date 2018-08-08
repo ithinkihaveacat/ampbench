@@ -220,7 +220,7 @@
       "regex": [
         "googletagmanager\\.com/ns\\.html[^>]+></iframe",
         "google_tag_manager\\[",
-        "^googletag$"
+        "googletag"
       ]
     },
     "Heap": {
@@ -592,6 +592,26 @@
       "category": "Ads",
       "regex": [
         "<script[\\s\\S]*bat\\.bing\\.com/bat.js[\\s\\S]*script>"
+      ]
+    },
+    "BlueKai": {
+      "category": "Ads",
+      "regex":[
+        "__bkframe"
+      ]
+    },
+    "Adobe Experience Manager": {
+      "category": "CMS",
+      "regex":[
+        "<div class=\"[^\"]*parbase",
+        "<div[^>]+data-component-path=\"[^\"+]jcr:"
+      ]
+    },
+    "Wordpress": {
+      "category": "CMS",
+      "regex":[
+        "<link rel=[\"']stylesheet[\"'] [^>]+wp-(?:content|includes)",
+        "<link[^>]+s\\d+\\.wp\\.com"
       ]
     }
   }

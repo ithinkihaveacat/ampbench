@@ -80,6 +80,16 @@ function getSchemaMetadata($: CheerioStatic) {
   return metadata ? metadata : {};
 }
 
+function getInlineMetadata($: CheerioStatic) {
+  const e = $("amp-story");
+  return {
+    "title": e.attr("title"),
+    "publisher": e.attr("publisher"),
+    "publisher-logo-src": e.attr("publisher-logo-src"),
+    "poster-portrait-src": e.attr("poster-portrait-src")
+  };
+}
+
 function testValidity($: CheerioStatic, url: string) {
   const res = validator.validateString($.html());
   return Promise.resolve(res.status === "PASS" ? PASS() : res);
@@ -392,6 +402,9 @@ export {
   testVideoSize,
   testVideoSource,
   testMetaCharsetFirst,
+  getBody as _getBody,
+  getSchemaMetadata as _getSchemaMetadata,
+  getInlineMetadata as _getInlineMetadata,
 };
 
 if (require.main === module) { // invoked directly?

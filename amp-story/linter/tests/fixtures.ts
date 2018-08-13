@@ -1,5 +1,3 @@
-// @ts-check
-
 import {basename} from "path";
 
 import * as fs from 'fs';
@@ -79,7 +77,7 @@ if (process.argv.length === 3) {
     if (res && res.length === 1) {
       console.log(`ok ${count} - ${prefix}`);
     } else {
-      console.log(`no ok ${count} - ${prefix} # more info: ${basename(process.argv[0])} ${basename(process.argv[1])} ${prefix}`);
+      console.log(`not ok ${count} - ${prefix} # more info: ${basename(process.argv[0])} ${basename(process.argv[1])} ${prefix}`);
     }
   });
 

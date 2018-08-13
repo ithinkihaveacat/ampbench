@@ -28,6 +28,7 @@
     "@types/node-fetch": "^2.1.2",
     "diff": "^3.5.0",
     "nock": "^9.6.0",
+    "probe-image-size": "^4.0.0",
     "tap-spec": "^5.0.0",
     "tslint": "^5.11.0",
     "typescript": "^3.0.1"

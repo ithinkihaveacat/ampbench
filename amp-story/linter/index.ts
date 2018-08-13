@@ -1,3 +1,5 @@
+/// <reference path="probe-image-size.d.ts" />
+
 import {resolve} from "url";
 // tslint:disable-next-line:no-var-requires
 const validator = require("amphtml-validator").newInstance(
@@ -13,6 +15,7 @@ import {default as fetch, Request, RequestInit, Response} from "node-fetch";
 import {basename} from "path";
 import * as punycode from "punycode";
 import * as readline from "readline";
+import * as probe from "probe-image-size";
 
 const CONCURRENCY = 8;
 const UA_GOOGLEBOT_MOBILE = [
@@ -88,6 +91,10 @@ function getInlineMetadata($: CheerioStatic) {
     "publisher-logo-src": e.attr("publisher-logo-src"),
     "poster-portrait-src": e.attr("poster-portrait-src")
   };
+}
+
+function getImageSize(url: string): Promise<{width: number, height: number}> {
+  return probe(url);
 }
 
 function testValidity($: CheerioStatic, url: string) {
@@ -402,9 +409,11 @@ export {
   testVideoSize,
   testVideoSource,
   testMetaCharsetFirst,
+  // "private" functions get prefixed
   getBody as _getBody,
   getSchemaMetadata as _getSchemaMetadata,
   getInlineMetadata as _getInlineMetadata,
+  getImageSize as _getImageSize,
 };
 
 if (require.main === module) { // invoked directly?

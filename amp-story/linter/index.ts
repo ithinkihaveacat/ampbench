@@ -83,17 +83,30 @@ function getSchemaMetadata($: CheerioStatic) {
   return metadata ? metadata : {};
 }
 
+interface InlineMetadata {
+  "title": string;
+  "publisher": string;
+  "publisher-logo-src": string;
+  "poster-portrait-src": string;
+  "poster-square-src"?: string;
+  "poster-landscape-src"?: string;
+}
+
 function getInlineMetadata($: CheerioStatic) {
   const e = $("amp-story");
-  return {
+  const inlineMetadata: InlineMetadata = {
     "title": e.attr("title"),
     "publisher": e.attr("publisher"),
     "publisher-logo-src": e.attr("publisher-logo-src"),
-    "poster-portrait-src": e.attr("poster-portrait-src")
+    "poster-portrait-src": e.attr("poster-portrait-src"),
+    "poster-square-src": e.attr("poster-square-src"), // optional
+    "poster-landscape-src": e.attr("poster-landscape-src") // optional
   };
+  return inlineMetadata;
 }
 
 function getImageSize(url: string): Promise<{width: number, height: number}> {
+  console.log('url', url);
   return probe(url);
 }
 
@@ -370,6 +383,52 @@ function testMostlyText($: CheerioStatic, url: string) {
   }
 }
 
+async function testThumbnails($: CheerioStatic) {
+  async function isSquare(url: string) {
+    const {width, height} = await getImageSize(url);
+    return width === height;
+  }
+  async function isPortrait(url: string) {
+    const {width, height} = await getImageSize(url);
+    return (width > (0.74 * height)) && (width < (0.76 * height));
+  }
+  async function isLandscape(url: string) {
+    const {width, height} = await getImageSize(url);
+    return (height > (0.74 * width)) && (height < (0.76 * width));
+  }
+  const inlineMetadata = getInlineMetadata($);
+
+  let k: keyof InlineMetadata;
+  let v: string|undefined;
+  const errors = [];
+
+  k = "publisher-logo-src";
+  v = inlineMetadata[k];
+  if (!(await isSquare(v))) {
+    errors.push(`[$k] (${v}) is not square (1x1)`);
+  }
+
+  k = "poster-portrait-src";
+  v = inlineMetadata[k];
+  if (!(await isPortrait(v))) {
+    errors.push(`[$k] (${v}) is not portrait (3x4)`);
+  }
+
+  k = "poster-square-src";
+  v = inlineMetadata[k];
+  if (v && !(await isSquare(v))) {
+    errors.push(`[$k] (${v}) is not square (1x1)`);
+  }
+
+  k = "poster-landscape-src";
+  v = inlineMetadata[k];
+  if (v && !(await isLandscape(k))) {
+    errors.push(`[$k] ($v) is not landscape (4x3)`);
+  }
+
+  return errors.length > 1 ? FAIL(errors.join(",")) : PASS();
+}
+
 async function testAll($: CheerioStatic, url: string) {
   const tests = [
     testValidity,
@@ -409,6 +468,7 @@ export {
   testVideoSize,
   testVideoSource,
   testMetaCharsetFirst,
+  testThumbnails,
   // "private" functions get prefixed
   getBody as _getBody,
   getSchemaMetadata as _getSchemaMetadata,

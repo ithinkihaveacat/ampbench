@@ -7,6 +7,7 @@ import { _getBody as getBody } from "../index";
 import { _getSchemaMetadata as getSchemaMetadata } from "../index";
 import { _getInlineMetadata as getInlineMetadata } from "../index";
 import { _getImageSize as getImageSize } from "../index";
+import { testThumbnails } from "../index";
 
 import { back as nockBack } from "nock";
 
@@ -39,9 +40,9 @@ function runCheerio(
   nockBack(`${fn.name.toLowerCase()}.json`, nockDone => {
     getBody(url)
       .then(res => res.text())
-      .then(body => {
+      .then(async body => {
         const $ = cheerio.load(body);
-        const actual = fn($);
+        const actual = await Promise.resolve(fn($));
         const res = diff(expected, actual);
         if (res && res.length === 1) {
           console.log(`ok ${count} - ${fn.name}`);
@@ -89,6 +90,8 @@ function runUrl(
 }
 
 let count = 0;
+
+/*
 
 runCheerio(
   getSchemaMetadata,
@@ -146,6 +149,16 @@ runUrl(
     hUnits: "px",
     length: 8654,
     url: "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150"
+  }
+);
+
+*/
+
+runCheerio(
+  testThumbnails,
+  ++count,
+  "https://ithinkihaveacat.github.io/hello-world-amp-story/",
+  {
   }
 );
 

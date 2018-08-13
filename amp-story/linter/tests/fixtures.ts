@@ -6,9 +6,9 @@ import * as fs from 'fs';
 import * as cheerio from 'cheerio';
 import {diffJson as diff} from 'diff';
 
-import * as validate from "./index";
+import * as validate from "../index";
 
-const DIR = 'test';
+const DIR = 'fixtures';
 
 async function run(prefix: string) {
 

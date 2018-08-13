@@ -75,7 +75,7 @@ const absoluteUrl = (s: string, base: string) => {
   // return new URL(s, base).toString();
 };
 
-function getMetadata($: CheerioStatic) {
+function getSchemaMetadata($: CheerioStatic) {
   const metadata = JSON.parse($('script[type="application/ld+json"]').html() as string);
   return metadata ? metadata : {};
 }
@@ -108,8 +108,8 @@ function testCanonical($: CheerioStatic, url: string) {
   });
 }
 
-function testMetadataArticle($: CheerioStatic, url: string) {
-  const metadata = getMetadata($);
+function testSchemaMetadataType($: CheerioStatic, url: string) {
+  const metadata = getSchemaMetadata($);
   const type = metadata["@type"];
   if (type !== "Article" && type !== "NewsArticle" && type !== "ReportageNewsArticle") {
     return WARNING(`@type is not 'Article' or 'NewsArticle' or 'ReportageNewsArticle'`);
@@ -118,11 +118,11 @@ function testMetadataArticle($: CheerioStatic, url: string) {
   }
 }
 
-function testMetadataRecent($: CheerioStatic, url: string) {
+function testSchemaMetadataRecent($: CheerioStatic, url: string) {
   const inLastMonth = (time: number) => {
     return  (time > Date.now() - (30 * 24 * 60 * 60 * 1000)) && (time < Date.now());
   };
-  const metadata = getMetadata($);
+  const metadata = getSchemaMetadata($);
   const datePublished = metadata.datePublished;
   const dateModified = metadata.dateModified;
   if (!datePublished || !dateModified) {
@@ -359,8 +359,8 @@ async function testAll($: CheerioStatic, url: string) {
     testCanonical,
     testAmpStory,
     testAmpStoryV1,
-    testMetadataRecent,
-    testMetadataArticle,
+    testSchemaMetadataRecent,
+    testSchemaMetadataType,
     testBookendSameOrigin,
     testBookendCache,
     testVideoSource,
@@ -385,8 +385,8 @@ export {
   testBookendCache,
   testBookendSameOrigin,
   testCanonical,
-  testMetadataArticle,
-  testMetadataRecent,
+  testSchemaMetadataType,
+  testSchemaMetadataRecent,
   testMostlyText,
   testValidity,
   testVideoSize,

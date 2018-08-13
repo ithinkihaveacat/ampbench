@@ -357,8 +357,8 @@ function testStoryV1Metadata($: CheerioStatic) {
 
 function testMetaCharsetFirst($: CheerioStatic, url: string) {
   const firstChild = $("head *:first-child");
-  // const charset = firstChild.attr("charset")
-  return PASS();
+  const charset = firstChild.attr("charset");
+  return !charset ? FAIL(`<meta charset> not the first <meta> tag`) : PASS();
 }
 
 function testMostlyText($: CheerioStatic, url: string) {

@@ -1,12 +1,12 @@
 import {basename} from "path";
 
-import * as fs from 'fs';
-import * as cheerio from 'cheerio';
-import {diffJson as diff} from 'diff';
+import * as cheerio from "cheerio";
+import {diffJson as diff} from "diff";
+import * as fs from "fs";
 
 import * as validate from "../index";
 
-const DIR = 'fixtures';
+const DIR = "fixtures";
 
 async function run(prefix: string) {
 
@@ -42,7 +42,7 @@ async function run(prefix: string) {
     }
   })();
 
-  if (!$ || !expected) return;
+  if (!$ || !expected) { return; }
 
   const url = expected._url || "https://example.com/";
 
@@ -57,10 +57,10 @@ if (process.argv.length === 3) {
   const prefix = process.argv[2];
 
   run(prefix).then(res => {
-    if (!res) return;
+    if (!res) { return; }
     res.forEach(part => {
-      var color = part.added ? 'green' :
-        part.removed ? 'red' : 'grey';
+      const color = part.added ? "green" :
+        part.removed ? "red" : "grey";
       process.stdout.write((part.value as any)[color]);
     });
     process.stdout.write("\n");
@@ -77,7 +77,9 @@ if (process.argv.length === 3) {
     if (res && res.length === 1) {
       console.log(`ok ${count} - ${prefix}`);
     } else {
-      console.log(`not ok ${count} - ${prefix} # more info: ${basename(process.argv[0])} ${basename(process.argv[1])} ${prefix}`);
+      console.log(
+        `not ok ${count} - ${prefix} # more info: ${basename(process.argv[0])} ${basename(process.argv[1])} ${prefix}`,
+      );
     }
   });
 

@@ -5,5 +5,7 @@
     // "object-literal-sort-keys": false
     "no-console": false,
     "interface-name": false,
+    "no-reference": false,
+    "arrow-parens": false
   }
 }

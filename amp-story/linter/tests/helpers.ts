@@ -1,7 +1,7 @@
-import { default as fetch } from "node-fetch";
 import * as cheerio from "cheerio";
-import * as nock from "nock";
 import { diffJson as diff } from "diff";
+import * as nock from "nock";
+import { default as fetch } from "node-fetch";
 
 import { _getBody as getBody } from "../index";
 import { _getSchemaMetadata as getSchemaMetadata } from "../index";
@@ -18,7 +18,7 @@ nockBack.setMode("record");
  * Test helper for functions that take a Cheerio object.  `url` will be loaded
  * from fixtures if available, otherwise a "real" network request will be made,
  * and the result saved as a fixture.
- * 
+ *
  * Approximate pseudo-code translation:
  *
  * @example
@@ -35,7 +35,7 @@ function runCheerio(
   fn: ($: CheerioStatic) => any,
   count: number,
   url: string,
-  expected: any
+  expected: any,
 ) {
   nockBack(`${fn.name.toLowerCase()}.json`, nockDone => {
     getBody(url)
@@ -48,14 +48,13 @@ function runCheerio(
           console.log(`ok ${count} - ${fn.name}`);
         } else {
           console.log(
-            `not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`
+            `not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`,
           );
         }
       })
       .then(nockDone);
   });
 }
-
 
 /**
  * Test helper for functions that take a URL. `url` will be loaded from fixtures
@@ -71,7 +70,7 @@ function runUrl(
   fn: (url: string) => Promise<any>,
   count: number,
   url: string,
-  expected: any
+  expected: any,
 ) {
   nockBack(`${fn.name.toLowerCase()}.json`, nockDone => {
     fn(url)
@@ -81,7 +80,7 @@ function runUrl(
           console.log(`ok ${count} - ${fn.name}`);
         } else {
           console.log(
-            `not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`
+            `not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`,
           );
         }
       })
@@ -89,7 +88,7 @@ function runUrl(
   });
 }
 
-let count = 0;
+let COUNT = 0;
 
 /*
 
@@ -156,10 +155,10 @@ runUrl(
 
 runCheerio(
   testThumbnails,
-  ++count,
+  ++COUNT,
   "https://ithinkihaveacat.github.io/hello-world-amp-story/",
   {
-  }
+  },
 );
 
-console.log(`1..${count}`);
+console.log(`1..${COUNT}`);

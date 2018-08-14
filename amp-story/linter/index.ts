@@ -13,9 +13,9 @@ import throat = require("throat");
 
 import {default as fetch, Request, RequestInit, Response} from "node-fetch";
 import {basename} from "path";
+import * as probe from "probe-image-size";
 import * as punycode from "punycode";
 import * as readline from "readline";
-import * as probe from "probe-image-size";
 
 const CONCURRENCY = 8;
 const UA_GOOGLEBOT_MOBILE = [
@@ -25,14 +25,14 @@ const UA_GOOGLEBOT_MOBILE = [
 ].join(" ");
 
 export interface ActualExpected {
-  actual: string,
-  expected: string,
+  actual: string;
+  expected: string;
 }
 
 export interface Message {
-  status: string,
-  message?: string|ActualExpected,
-};
+  status: string;
+  message?: string|ActualExpected;
+}
 
 const PASS = (): Promise<Message> => Promise.resolve({status: "OKAY"});
 const FAIL = (s: string|ActualExpected): Promise<Message> => {
@@ -95,18 +95,17 @@ interface InlineMetadata {
 function getInlineMetadata($: CheerioStatic) {
   const e = $("amp-story");
   const inlineMetadata: InlineMetadata = {
-    "title": e.attr("title"),
-    "publisher": e.attr("publisher"),
-    "publisher-logo-src": e.attr("publisher-logo-src"),
+    "poster-landscape-src": e.attr("poster-landscape-src"), // optional
     "poster-portrait-src": e.attr("poster-portrait-src"),
     "poster-square-src": e.attr("poster-square-src"), // optional
-    "poster-landscape-src": e.attr("poster-landscape-src") // optional
+    "publisher": e.attr("publisher"),
+    "publisher-logo-src": e.attr("publisher-logo-src"),
+    "title": e.attr("title"),
   };
   return inlineMetadata;
 }
 
 function getImageSize(url: string): Promise<{width: number, height: number}> {
-  console.log('url', url);
   return probe(url);
 }
 
@@ -224,9 +223,11 @@ function buildCacheOrigin(cacheSuffix: string, url: string): string {
 
 function isJson(res: Response): Promise<Response> {
   const contentType = (() => {
-    if (!res.headers) return "";
-    const contentType = res.headers.get("content-type") || "";
-    return contentType.toLowerCase().split(";")[0];
+    if (!res.headers) {
+      return "";
+    }
+    const s = res.headers.get("content-type") || "";
+    return s.toLowerCase().split(";")[0];
   })();
   if (contentType !== "application/json") {
     throw new Error(`expected content-type: [application/json]; actual: [${contentType}]`);
@@ -351,7 +352,7 @@ function testVideoSource($: CheerioStatic, url: string) {
 
 function testAmpStoryV1($: CheerioStatic, url: string) {
   const isV1 = $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
-  return isV1 ? PASS() : WARNING('amp-story-1.0.js not used (probably 0.1?)');
+  return isV1 ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
 }
 
 /*

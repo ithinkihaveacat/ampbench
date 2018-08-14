@@ -61,10 +61,10 @@ function runCheerio(
  * if available, otherwise a "real" network request will be made, and the result
  * saved as a fixture.
  *
- * @param {(url: string) => any} fn
- * @param {number} count
- * @param {string} url
- * @param {*} expected
+ * @param fn function to test
+ * @param count the test number (needed for TAP)
+ * @param url input URL
+ * @param expected expected output
  */
 function runUrl(
   fn: (url: string) => Promise<any>,
@@ -156,7 +156,8 @@ runUrl(
 runCheerio(
   testThumbnails,
   ++COUNT,
-  "https://ithinkihaveacat.github.io/hello-world-amp-story/",
+  // "https://ithinkihaveacat.github.io/hello-world-amp-story/",
+  "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/",
   {
   },
 );

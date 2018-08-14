@@ -406,28 +406,28 @@ async function testThumbnails($: CheerioStatic) {
   k = "publisher-logo-src";
   v = inlineMetadata[k];
   if (!(await isSquare(v))) {
-    errors.push(`[$k] (${v}) is not square (1x1)`);
+    errors.push(`[${k}] (${v}) is not square (1x1)`);
   }
 
   k = "poster-portrait-src";
   v = inlineMetadata[k];
   if (!(await isPortrait(v))) {
-    errors.push(`[$k] (${v}) is not portrait (3x4)`);
+    errors.push(`[${k}] (${v}) is not portrait (3x4)`);
   }
 
   k = "poster-square-src";
   v = inlineMetadata[k];
   if (v && !(await isSquare(v))) {
-    errors.push(`[$k] (${v}) is not square (1x1)`);
+    errors.push(`[${k}] (${v}) is not square (1x1)`);
   }
 
   k = "poster-landscape-src";
   v = inlineMetadata[k];
-  if (v && !(await isLandscape(k))) {
-    errors.push(`[$k] ($v) is not landscape (4x3)`);
+  if (v && !(await isLandscape(v))) {
+    errors.push(`[${k}] ($v) is not landscape (4x3)`);
   }
 
-  return errors.length > 1 ? FAIL(errors.join(",")) : PASS();
+  return (errors.length > 0) ? FAIL(errors.join(",")) : PASS();
 }
 
 async function testAll($: CheerioStatic, url: string) {
@@ -492,6 +492,6 @@ if (require.main === module) { // invoked directly?
     .then($ => testAll($, url))
     .then(console.log)
     .then(() => process.exit(0))
-    .catch((e) => console.error(`error: ${e}`))
+    .catch((e) => console.error(`error: ${e}`));
 
 }

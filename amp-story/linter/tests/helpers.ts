@@ -12,7 +12,12 @@ import { testThumbnails } from "../index";
 import { back as nockBack } from "nock";
 
 nockBack.fixtures = __dirname + "/nock";
-nockBack.setMode("record");
+
+// "record" to record HTTP request (when writing new tests)
+// "lockdown" to use fixtures only
+nockBack.setMode("lockdown");
+
+const TIMEOUT = (nockBack as any).currentMode === "record" ? 2000 : 0;
 
 /**
  * Test helper for functions that take a Cheerio object.  `url` will be loaded
@@ -52,7 +57,7 @@ function runCheerio(
           );
         }
       })
-      .then(nockDone);
+      .then(() => setTimeout(nockDone, TIMEOUT)); // wait for probe-image-size's aborts to settle
   });
 }
 
@@ -84,74 +89,58 @@ function runUrl(
           );
         }
       })
-      .then(nockDone);
+      .then(() => setTimeout(nockDone, TIMEOUT));
   });
 }
 
 let COUNT = 0;
 
-/*
-
 runCheerio(
   getSchemaMetadata,
-  ++count,
+  ++COUNT,
   "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/",
   {
     "@context": "http://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
+    "itemListElement": [
       {
         "@type": "ListItem",
-        position: 1,
-        item: {
+        "item": {
           "@id": "https://ampbyexample.com/#/stories#stories/introduction",
-          name: "Introduction"
-        }
+          "name": "Introduction",
+        },
+        "position": 1,
       },
       {
         "@type": "ListItem",
-        position: 2,
-        item: {
+        "item": {
           "@id":
             "https://ampbyexample.com/stories/introduction/amp_story_hello_world/",
-          name: " AMP Story Hello World"
-        }
+          "name": " AMP Story Hello World",
+        },
+        "position": 2,
       }
     ]
-  }
+  },
 );
 
 runCheerio(
   getInlineMetadata,
-  ++count,
+  ++COUNT,
   "https://ithinkihaveacat.github.io/hello-world-amp-story/",
   {
-    title: "Hello, Ken Burns",
-    publisher: "Michael Stillwell",
+    "poster-portrait-src":
+      [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/",
+        "Cantilever_bridge_human_model.jpg/",
+        "627px-Cantilever_bridge_human_model.jpg"
+      ].join(""),
+    "publisher": "Michael Stillwell",
     "publisher-logo-src":
       "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
-    "poster-portrait-src":
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Cantilever_bridge_human_model.jpg/627px-Cantilever_bridge_human_model.jpg"
-  }
+    "title": "Hello, Ken Burns",
+    },
 );
-
-runUrl(
-  getImageSize,
-  ++count,
-  "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
-  {
-    width: 150,
-    height: 150,
-    type: "jpg",
-    mime: "image/jpeg",
-    wUnits: "px",
-    hUnits: "px",
-    length: 8654,
-    url: "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150"
-  }
-);
-
-*/
 
 runCheerio(
   testThumbnails,
@@ -159,6 +148,23 @@ runCheerio(
   // "https://ithinkihaveacat.github.io/hello-world-amp-story/",
   "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/",
   {
+    status: "OKAY",
+  },
+);
+
+runUrl(
+  getImageSize,
+  ++COUNT,
+  "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
+  {
+    hUnits: "px",
+    height: 150,
+    length: 8654,
+    mime: "image/jpeg",
+    type: "jpg",
+    url: "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
+    wUnits: "px",
+    width: 150,
   },
 );
 

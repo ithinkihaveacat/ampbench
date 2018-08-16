@@ -326,7 +326,7 @@ function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
 
 function testBookendSameOrigin($: CheerioStatic, url: string) {
   const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
-  if (!bookendConfigSrc) { return WARNING("bookend-config-src missing"); }
+  if (!bookendConfigSrc) { return WARNING("amp-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
 
@@ -335,7 +335,7 @@ function testBookendSameOrigin($: CheerioStatic, url: string) {
 
 function testBookendCache($: CheerioStatic, url: string) {
   const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
-  if (!bookendConfigSrc) { return WARNING("bookend-config-src missing"); }
+  if (!bookendConfigSrc) { return WARNING("bookend-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
 
@@ -443,6 +443,8 @@ async function testAll($: CheerioStatic, url: string) {
     testVideoSource,
     testVideoSize,
     testMostlyText,
+    testThumbnails,
+    testMetaCharsetFirst,
   ];
   const res = await Promise.all(tests.map((f) => f($, url).then((v) => [
     f.name.substring("test".length).toLowerCase(), // key

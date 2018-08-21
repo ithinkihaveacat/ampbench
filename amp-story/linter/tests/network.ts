@@ -12,11 +12,11 @@ import { _getBody as getBody } from "..";
 import { _getSchemaMetadata as getSchemaMetadata } from "..";
 import { _getInlineMetadata as getInlineMetadata } from "..";
 import { _getImageSize as getImageSize } from "..";
-import { testThumbnails } from "..";
+import * as linter from "..";
 
 import throat = require("throat");
 
-const log = debug("helpers");
+const log = debug("linter");
 
 nockBack.fixtures = `${__dirname}/${FIXTURES}`;
 
@@ -70,7 +70,7 @@ const withFixture = throat(1,
  * @param expected expected output
  */
 function runCheerio(
-  fn: ($: CheerioStatic) => any,
+  fn: ($: CheerioStatic, url?: string) => any,
   count: number,
   url: string,
   expected: any,
@@ -79,12 +79,12 @@ function runCheerio(
     const res = await getBody(url);
     const body = await res.text();
     const $ = cheerio.load(body);
-    const actual = await Promise.resolve(fn($));
+    const actual = await Promise.resolve(fn($, url));
     const d = diff(expected, actual);
     if (d && d.length === 1) {
       console.log(`ok ${count} - ${fn.name}`);
     } else {
-      console.log(`not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`);
+      console.log(`not ok ${count} - ${fn.name} actual: ${JSON.stringify(actual)}`);
     }
   });
 }
@@ -111,7 +111,7 @@ function runUrl(
     if (res && res.length === 1) {
       console.log(`ok ${count} - ${fn.name}`);
     } else {
-      console.log(`not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`);
+      console.log(`not ok ${count} - ${fn.name} actual: ${JSON.stringify(actual)}`);
     }
   });
 }
@@ -166,13 +166,22 @@ runCheerio(
 );
 
 runCheerio(
-  testThumbnails,
+  linter.testThumbnails,
   ++COUNT,
   // "https://ithinkihaveacat.github.io/hello-world-amp-story/",
   "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/",
   {
     status: "OKAY",
   },
+);
+
+runCheerio(
+  linter.testVideoSize,
+  ++COUNT,
+  "https://ampbyexample.com/stories/features/media/preview/embed/",
+  {
+    status: "OKAY"
+  }
 );
 
 runUrl(
@@ -191,4 +200,5 @@ runUrl(
   },
 );
 
+console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
 console.log(`1..${COUNT}`);

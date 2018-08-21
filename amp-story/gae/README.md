@@ -22,5 +22,5 @@ Deployment:
 
 ```sh
 $ gcloud config set core/project PROJECT # set default project (if necessary)
-$ npm run run deploy
+$ npm run deploy
 ```

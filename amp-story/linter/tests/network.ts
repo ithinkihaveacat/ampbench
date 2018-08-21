@@ -1,3 +1,5 @@
+const FIXTURES = "network";
+
 import { existsSync } from "fs";
 
 import * as cheerio from "cheerio";
@@ -6,17 +8,17 @@ import { diffJson as diff } from "diff";
 import { back as nockBack } from "nock";
 import { default as fetch } from "node-fetch";
 
-import { _getBody as getBody } from "../index";
-import { _getSchemaMetadata as getSchemaMetadata } from "../index";
-import { _getInlineMetadata as getInlineMetadata } from "../index";
-import { _getImageSize as getImageSize } from "../index";
-import { testThumbnails } from "../index";
+import { _getBody as getBody } from "..";
+import { _getSchemaMetadata as getSchemaMetadata } from "..";
+import { _getInlineMetadata as getInlineMetadata } from "..";
+import { _getImageSize as getImageSize } from "..";
+import { testThumbnails } from "..";
 
 import throat = require("throat");
 
 const log = debug("helpers");
 
-nockBack.fixtures = __dirname + "/nock";
+nockBack.fixtures = `${__dirname}/${FIXTURES}`;
 
 // "record" to record HTTP request (when writing new tests)
 // "lockdown" to use fixtures only

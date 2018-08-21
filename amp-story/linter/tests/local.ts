@@ -1,3 +1,5 @@
+const FIXTURES = "local";
+
 import {basename} from "path";
 
 import * as cheerio from "cheerio";
@@ -5,8 +7,6 @@ import {diffJson as diff} from "diff";
 import * as fs from "fs";
 
 import * as validate from "../index";
-
-const DIR = "fixtures";
 
 async function run(prefix: string) {
 
@@ -70,12 +70,12 @@ if (process.argv.length === 3) {
 
   let count = 0;
 
-  fs.readdirSync(DIR).forEach(async d => {
+  fs.readdirSync(FIXTURES).forEach(async d => {
     count++;
-    const prefix = `${DIR}/${d}`;
+    const prefix = `${FIXTURES}/${d}`;
     const res = await run(prefix);
     if (res && res.length === 1) {
-      console.log(`ok ${count} - ${prefix}`);
+      console.log(`ok ${count} - ${basename(prefix)}`);
     } else {
       console.log(
         `not ok ${count} - ${prefix} # more info: ${basename(process.argv[0])} ${basename(process.argv[1])} ${prefix}`,

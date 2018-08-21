@@ -22,7 +22,7 @@
     "prepare": "rm -rf dist && tsc -p tsconfig.json --sourceMap -d --module commonjs --outDir dist/commonjs && cp validator.js dist/commonjs",
     "postpublish": "git push && git push --tags",
     "update-validator": "curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js",
-    "test": "echo 'tests are disabled; see tests/README.md' # cd tests && tsc && for t in *.js ; do node $t | tap-spec ; done"
+    "test": "cd tests && tsc && for t in *.js ; do node $t | tap-spec ; done"
   },
   "devDependencies": {
     "@types/debug": "0.0.30",

@@ -1,6 +1,9 @@
+import { existsSync } from "fs";
+
 import * as cheerio from "cheerio";
+import * as debug from "debug";
 import { diffJson as diff } from "diff";
-import * as nock from "nock";
+import { back as nockBack } from "nock";
 import { default as fetch } from "node-fetch";
 
 import { _getBody as getBody } from "../index";
@@ -9,15 +12,43 @@ import { _getInlineMetadata as getInlineMetadata } from "../index";
 import { _getImageSize as getImageSize } from "../index";
 import { testThumbnails } from "../index";
 
-import { back as nockBack } from "nock";
+import throat = require("throat");
+
+const log = debug("helpers");
 
 nockBack.fixtures = __dirname + "/nock";
 
 // "record" to record HTTP request (when writing new tests)
 // "lockdown" to use fixtures only
-nockBack.setMode("lockdown");
 
 const TIMEOUT = (nockBack as any).currentMode === "record" ? 2000 : 0;
+
+// Need to throttle to one run at a time because nock() works by monkey patching
+// the (global) http.* object, which means it can't run in parallel.
+const withFixture = throat(1,
+  async <T>(fixtureName: string, fn: () => Promise<T>): Promise<T> => {
+    if (existsSync(`${nockBack.fixtures}/${fixtureName}`)) {
+      log(`nocking HTTP requests with fixture [${fixtureName}]`);
+      nockBack.setMode("lockdown");
+      const { nockDone } = await nockBack(fixtureName);
+      const res = await fn();
+      nockDone();
+      return res;
+    } else {
+      log(`recording HTTP requests to fixture [${fixtureName}] ...`);
+      nockBack.setMode("record");
+      const { nockDone } = await nockBack(fixtureName);
+      const res = await fn();
+      return new Promise<T>((resolve) => {
+        setTimeout(() => { // wait for probe-image-size's aborts to settle
+          nockDone();
+          log(`... created fixture [${fixtureName}]`);
+          resolve(res);
+        }, 2000);
+      });
+    }
+  }
+) as <T>(fixtureName: string, fn: () => Promise<T>) => Promise<T>;
 
 /**
  * Test helper for functions that take a Cheerio object.  `url` will be loaded
@@ -42,22 +73,17 @@ function runCheerio(
   url: string,
   expected: any,
 ) {
-  nockBack(`${fn.name.toLowerCase()}.json`, nockDone => {
-    getBody(url)
-      .then(res => res.text())
-      .then(async body => {
-        const $ = cheerio.load(body);
-        const actual = await Promise.resolve(fn($));
-        const res = diff(expected, actual);
-        if (res && res.length === 1) {
-          console.log(`ok ${count} - ${fn.name}`);
-        } else {
-          console.log(
-            `not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`,
-          );
-        }
-      })
-      .then(() => setTimeout(nockDone, TIMEOUT)); // wait for probe-image-size's aborts to settle
+  withFixture(`${fn.name.toLowerCase()}.json`, async () => {
+    const res = await getBody(url);
+    const body = await res.text();
+    const $ = cheerio.load(body);
+    const actual = await Promise.resolve(fn($));
+    const d = diff(expected, actual);
+    if (d && d.length === 1) {
+      console.log(`ok ${count} - ${fn.name}`);
+    } else {
+      console.log(`not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`);
+    }
   });
 }
 
@@ -77,19 +103,14 @@ function runUrl(
   url: string,
   expected: any,
 ) {
-  nockBack(`${fn.name.toLowerCase()}.json`, nockDone => {
-    fn(url)
-      .then((actual: any) => {
-        const res = diff(expected, actual);
-        if (res && res.length === 1) {
-          console.log(`ok ${count} - ${fn.name}`);
-        } else {
-          console.log(
-            `not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`,
-          );
-        }
-      })
-      .then(() => setTimeout(nockDone, TIMEOUT));
+  withFixture(`${fn.name.toLowerCase()}.json`, async () => {
+    const actual = await fn(url);
+    const res = diff(expected, actual);
+    if (res && res.length === 1) {
+      console.log(`ok ${count} - ${fn.name}`);
+    } else {
+      console.log(`not ok ${count} - ${fn.name} # actual: ${JSON.stringify(actual)}`);
+    }
   });
 }
 

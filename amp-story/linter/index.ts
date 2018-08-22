@@ -405,14 +405,14 @@ async function testThumbnails($: CheerioStatic) {
 
   k = "publisher-logo-src";
   v = inlineMetadata[k];
-  if (!(await isSquare(v))) {
-    errors.push(`[${k}] (${v}) is not square (1x1)`);
+  if (!v || !(await isSquare(v))) {
+    errors.push(`[${k}] (${v}) is missing or not square (1x1)`);
   }
 
   k = "poster-portrait-src";
   v = inlineMetadata[k];
-  if (!(await isPortrait(v))) {
-    errors.push(`[${k}] (${v}) is not portrait (3x4)`);
+  if (!v || !(await isPortrait(v))) {
+    errors.push(`[${k}] (${v}) is missing or not portrait (3x4)`);
   }
 
   k = "poster-square-src";

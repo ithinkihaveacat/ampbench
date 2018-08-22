@@ -142,8 +142,8 @@ withFixture("getinlinemetadata", async () => assertEqual(
     },
 ));
 
-withFixture("testthumbnails", async () => assertEqual(
-  "testThumbnails",
+withFixture("thumbnails1", async () => assertEqual(
+  "testThumbnails - correctly sized",
   await runCheerioFn(
     linter.testThumbnails,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
@@ -151,6 +151,17 @@ withFixture("testthumbnails", async () => assertEqual(
   {
     status: "OKAY",
   },
+));
+
+withFixture("thumbnails2", async () => assertNotEqual(
+  "testThumbnails - publisher-logo-src missing",
+  await runCheerioFn(
+    linter.testThumbnails,
+    "https://regular-biology.glitch.me/"
+  ),
+  {
+    status: "OKAY"
+  }
 ));
 
 withFixture("testvalidity1", async () => assertEqual(
@@ -287,4 +298,4 @@ withFixture("bookendcache2", async () => assertNotEqual(
 ));
 
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
-console.log(`1..10`);
+console.log(`1..16`);

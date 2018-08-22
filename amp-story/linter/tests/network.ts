@@ -153,17 +153,6 @@ withFixture("testthumbnails", async () => assertEqual(
   },
 ));
 
-withFixture("testvideosize", async () => assertEqual(
-  "testVideoSize",
-  await runCheerioFn(
-    linter.testVideoSize,
-    "https://ampbyexample.com/stories/features/media/preview/embed/"
-  ),
-  {
-    status: "OKAY"
-  }
-));
-
 withFixture("testvalidity1", async () => assertEqual(
   "testValidity - valid",
   await runCheerioFn(
@@ -221,10 +210,21 @@ withFixture("testvideosize1", async () => assertEqual(
 ));
 
 withFixture("testvideosize2", async () => assertEqual(
-  "testVideoSize - right size",
+  "testVideoSize - good size #1",
   await runCheerioFn(
     linter.testVideoSize,
     "https://regular-biology.glitch.me/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("testvideosize3", async () => assertEqual(
+  "testVideoSize - good size #2",
+  await runCheerioFn(
+    linter.testVideoSize,
+    "https://ampbyexample.com/stories/features/media/preview/embed/"
   ),
   {
     status: "OKAY"

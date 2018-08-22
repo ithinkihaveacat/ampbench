@@ -231,5 +231,38 @@ withFixture("testvideosize3", async () => assertEqual(
   }
 ));
 
+withFixture("bookendsameorigin1", async () => assertEqual(
+  "testBookendSameOrigin - configured correctly",
+  await runCheerioFn(
+    linter.testBookendSameOrigin,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("bookendsameorigin2", async () => assertNotEqual(
+  "testBookendSameOrigin - bookend not application/json",
+  await runCheerioFn(
+    linter.testBookendSameOrigin,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("bookendsameorigin3", async () => assertNotEqual(
+  "testBookendSameOrigin - bookend not JSON",
+  await runCheerioFn(
+    linter.testBookendSameOrigin,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
 console.log(`1..10`);

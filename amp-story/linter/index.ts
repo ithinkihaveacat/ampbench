@@ -105,7 +105,7 @@ function getInlineMetadata($: CheerioStatic) {
   return inlineMetadata;
 }
 
-function getImageSize(url: string): Promise<{width: number, height: number}> {
+function getImageSize(url: string): Promise<{width: number, height: number, [k: string]: any}> {
   return probe(url);
 }
 

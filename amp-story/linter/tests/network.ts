@@ -20,31 +20,27 @@ const log = debug("linter");
 
 nockBack.fixtures = `${__dirname}/${FIXTURES}`;
 
-// "record" to record HTTP request (when writing new tests)
-// "lockdown" to use fixtures only
-
-const TIMEOUT = (nockBack as any).currentMode === "record" ? 2000 : 0;
-
 // Need to throttle to one run at a time because nock() works by monkey patching
 // the (global) http.* object, which means it can't run in parallel.
 const withFixture = throat(1,
   async <T>(fixtureName: string, fn: () => Promise<T>): Promise<T> => {
-    if (existsSync(`${nockBack.fixtures}/${fixtureName}`)) {
-      log(`nocking HTTP requests with fixture [${fixtureName}]`);
+    const fixturePath = `${fixtureName}.json`;
+    if (existsSync(`${nockBack.fixtures}/${fixturePath}`)) {
+      log(`nocking HTTP requests with fixture [${fixturePath}]`);
       nockBack.setMode("lockdown");
-      const { nockDone } = await nockBack(fixtureName);
+      const { nockDone } = await nockBack(fixturePath);
       const res = await fn();
       nockDone();
       return res;
     } else {
-      log(`recording HTTP requests to fixture [${fixtureName}] ...`);
+      log(`recording HTTP requests to fixture [${fixturePath}] ...`);
       nockBack.setMode("record");
-      const { nockDone } = await nockBack(fixtureName);
+      const { nockDone } = await nockBack(fixturePath);
       const res = await fn();
       return new Promise<T>((resolve) => {
         setTimeout(() => { // wait for probe-image-size's aborts to settle
           nockDone();
-          log(`... created fixture [${fixtureName}]`);
+          log(`... created fixture [${fixturePath}]`);
           resolve(res);
         }, 2000);
       });
@@ -52,41 +48,30 @@ const withFixture = throat(1,
   }
 ) as <T>(fixtureName: string, fn: () => Promise<T>) => Promise<T>;
 
-/**
- * Test helper for functions that take a Cheerio object.  `url` will be loaded
- * from fixtures if available, otherwise a "real" network request will be made,
- * and the result saved as a fixture.
- *
- * Approximate pseudo-code translation:
- *
- * @example
- * const $ = cheerio.load(fetch(url));
- * const actual = fn($);
- * return actual === expected;
- *
- * @param fn function to test
- * @param count the test number (needed for TAP)
- * @param url input URL
- * @param expected expected output
- */
-function runCheerio(
-  fn: ($: CheerioStatic, url?: string) => any,
-  count: number,
-  url: string,
-  expected: any,
+function tapTest<T extends object>(
+  testCount: number,
+  testName: string,
+  actual: T,
+  expected: T,
 ) {
-  withFixture(`${fn.name.toLowerCase()}.json`, async () => {
-    const res = await getBody(url);
-    const body = await res.text();
-    const $ = cheerio.load(body);
-    const actual = await Promise.resolve(fn($, url));
-    const d = diff(expected, actual);
-    if (d && d.length === 1) {
-      console.log(`ok ${count} - ${fn.name}`);
-    } else {
-      console.log(`not ok ${count} - ${fn.name} actual: ${JSON.stringify(actual)}`);
-    }
-  });
+  const res = diff(expected, actual);
+  if (res && res.length === 1) {
+    console.log(`ok ${testCount} - ${testName}`);
+  } else {
+    console.log(`not ok ${testCount} - ${testName} actual: ${JSON.stringify(actual)}`);
+  }
+  return Promise.resolve(res);
+}
+
+async function runCheerioFn<T>(fn: ($: CheerioStatic, url?: string) => T, url: string) {
+  const res = await getBody(url);
+  const body = await res.text();
+  const $ = cheerio.load(body);
+  return Promise.resolve(fn($, url));
+}
+
+async function runUrlFn<T>(fn: (url: string) => T, url: string) {
+  return Promise.resolve(fn(url));
 }
 
 /**
@@ -118,10 +103,13 @@ function runUrl(
 
 let COUNT = 0;
 
-runCheerio(
-  getSchemaMetadata,
+withFixture("getschemametadata", async () => tapTest(
   ++COUNT,
-  "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/",
+  "getschemametadata",
+  await runCheerioFn(
+    getSchemaMetadata,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
   {
     "@context": "http://schema.org",
     "@type": "BreadcrumbList",
@@ -145,12 +133,15 @@ runCheerio(
       }
     ]
   },
-);
+));
 
-runCheerio(
-  getInlineMetadata,
+withFixture("getinlinemetadata", async () => tapTest(
   ++COUNT,
-  "https://ithinkihaveacat.github.io/hello-world-amp-story/",
+  "getInlineMetadata",
+  await runCheerioFn(
+    getInlineMetadata,
+    "https://ithinkihaveacat.github.io/hello-world-amp-story/"
+  ),
   {
     "poster-portrait-src":
       [
@@ -163,42 +154,31 @@ runCheerio(
       "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
     "title": "Hello, Ken Burns",
     },
-);
+));
 
-runCheerio(
-  linter.testThumbnails,
+withFixture("testthumbnails", async () => tapTest(
   ++COUNT,
-  // "https://ithinkihaveacat.github.io/hello-world-amp-story/",
-  "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/",
+  "testThumbnails",
+  await runCheerioFn(
+    linter.testThumbnails,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
   {
     status: "OKAY",
   },
-);
+));
 
-runCheerio(
-  linter.testVideoSize,
+withFixture("testvideosize", async () => tapTest(
   ++COUNT,
-  "https://ampbyexample.com/stories/features/media/preview/embed/",
+  "testVideoSize",
+  await runCheerioFn(
+    linter.testVideoSize,
+    "https://ampbyexample.com/stories/features/media/preview/embed/"
+  ),
   {
     status: "OKAY"
   }
-);
-
-runUrl(
-  getImageSize,
-  ++COUNT,
-  "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
-  {
-    hUnits: "px",
-    height: 150,
-    length: 8654,
-    mime: "image/jpeg",
-    type: "jpg",
-    url: "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
-    wUnits: "px",
-    width: 150,
-  },
-);
+));
 
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
 console.log(`1..${COUNT}`);

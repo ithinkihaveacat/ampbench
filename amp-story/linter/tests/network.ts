@@ -48,7 +48,7 @@ const withFixture = throat(1,
   }
 ) as <T>(fixtureName: string, fn: () => Promise<T>) => Promise<T>;
 
-function tapTest<T extends object>(
+function assertEqual<T extends object>(
   testCount: number,
   testName: string,
   actual: T,
@@ -59,6 +59,21 @@ function tapTest<T extends object>(
     console.log(`ok ${testCount} - ${testName}`);
   } else {
     console.log(`not ok ${testCount} - ${testName} actual: ${JSON.stringify(actual)}`);
+  }
+  return Promise.resolve(res);
+}
+
+function assertNotEqual<T extends object>(
+  testCount: number,
+  testName: string,
+  actual: T,
+  expected: T,
+) {
+  const res = diff(expected, actual);
+  if (res && res.length === 1) {
+    console.log(`not ok ${testCount} - ${testName} actual: ${JSON.stringify(actual)}`);
+  } else {
+    console.log(`ok ${testCount} - ${testName}`);
   }
   return Promise.resolve(res);
 }
@@ -103,7 +118,7 @@ function runUrl(
 
 let COUNT = 0;
 
-withFixture("getschemametadata", async () => tapTest(
+withFixture("getschemametadata", async () => assertEqual(
   ++COUNT,
   "getschemametadata",
   await runCheerioFn(
@@ -135,7 +150,7 @@ withFixture("getschemametadata", async () => tapTest(
   },
 ));
 
-withFixture("getinlinemetadata", async () => tapTest(
+withFixture("getinlinemetadata", async () => assertEqual(
   ++COUNT,
   "getInlineMetadata",
   await runCheerioFn(
@@ -156,7 +171,7 @@ withFixture("getinlinemetadata", async () => tapTest(
     },
 ));
 
-withFixture("testthumbnails", async () => tapTest(
+withFixture("testthumbnails", async () => assertEqual(
   ++COUNT,
   "testThumbnails",
   await runCheerioFn(
@@ -168,12 +183,36 @@ withFixture("testthumbnails", async () => tapTest(
   },
 ));
 
-withFixture("testvideosize", async () => tapTest(
+withFixture("testvideosize", async () => assertEqual(
   ++COUNT,
   "testVideoSize",
   await runCheerioFn(
     linter.testVideoSize,
     "https://ampbyexample.com/stories/features/media/preview/embed/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("testvalidity1", async () => assertEqual(
+  ++COUNT,
+  "testValidity - valid",
+  await runCheerioFn(
+    linter.testValidity,
+    "https://www.ampproject.org/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("testvalidity2", async () => assertNotEqual(
+  ++COUNT,
+  "testValidity - not valid",
+  await runCheerioFn(
+    linter.testValidity,
+    "https://precious-sturgeon.glitch.me/"
   ),
   {
     status: "OKAY"

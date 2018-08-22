@@ -1,4 +1,4 @@
-const FIXTURES = "local";
+const FIXTURES = __dirname + "/local";
 
 import {basename} from "path";
 
@@ -17,7 +17,7 @@ async function run(prefix: string) {
     return;
   }
 
-  const name = match[1];
+  const name = basename(match[1]);
 
   if (!(name in validate)) {
     console.warn(`${name}() not found`);
@@ -52,6 +52,8 @@ async function run(prefix: string) {
   return diff(expected, actual);
 }
 
+let COUNT = 0;
+
 if (process.argv.length === 3) {
 
   const prefix = process.argv[2];
@@ -68,10 +70,8 @@ if (process.argv.length === 3) {
 
 } else {
 
-  let count = 0;
-
   fs.readdirSync(FIXTURES).forEach(async d => {
-    count++;
+    const count = ++COUNT;
     const prefix = `${FIXTURES}/${d}`;
     const res = await run(prefix);
     if (res && res.length === 1) {
@@ -83,6 +83,6 @@ if (process.argv.length === 3) {
     }
   });
 
-  console.log(`1..${count}`);
+  console.log(`1..${COUNT}`);
 
 }

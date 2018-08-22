@@ -49,31 +49,31 @@ const withFixture = throat(1,
 ) as <T>(fixtureName: string, fn: () => Promise<T>) => Promise<T>;
 
 function assertEqual<T extends object>(
-  testCount: number,
   testName: string,
   actual: T,
   expected: T,
 ) {
+  COUNT++;
   const res = diff(expected, actual);
   if (res && res.length === 1) {
-    console.log(`ok ${testCount} - ${testName}`);
+    console.log(`ok ${COUNT} - ${testName}`);
   } else {
-    console.log(`not ok ${testCount} - ${testName} actual: ${JSON.stringify(actual)}`);
+    console.log(`not ok ${COUNT} - ${testName} actual: ${JSON.stringify(actual)}`);
   }
   return Promise.resolve(res);
 }
 
 function assertNotEqual<T extends object>(
-  testCount: number,
   testName: string,
   actual: T,
   expected: T,
 ) {
+  COUNT++;
   const res = diff(expected, actual);
   if (res && res.length === 1) {
-    console.log(`not ok ${testCount} - ${testName} actual: ${JSON.stringify(actual)}`);
+    console.log(`not ok ${COUNT} - ${testName} actual: ${JSON.stringify(actual)}`);
   } else {
-    console.log(`ok ${testCount} - ${testName}`);
+    console.log(`ok ${COUNT} - ${testName}`);
   }
   return Promise.resolve(res);
 }
@@ -89,37 +89,9 @@ async function runUrlFn<T>(fn: (url: string) => T, url: string) {
   return Promise.resolve(fn(url));
 }
 
-/**
- * Test helper for functions that take a URL. `url` will be loaded from fixtures
- * if available, otherwise a "real" network request will be made, and the result
- * saved as a fixture.
- *
- * @param fn function to test
- * @param count the test number (needed for TAP)
- * @param url input URL
- * @param expected expected output
- */
-function runUrl(
-  fn: (url: string) => Promise<any>,
-  count: number,
-  url: string,
-  expected: any,
-) {
-  withFixture(`${fn.name.toLowerCase()}.json`, async () => {
-    const actual = await fn(url);
-    const res = diff(expected, actual);
-    if (res && res.length === 1) {
-      console.log(`ok ${count} - ${fn.name}`);
-    } else {
-      console.log(`not ok ${count} - ${fn.name} actual: ${JSON.stringify(actual)}`);
-    }
-  });
-}
-
 let COUNT = 0;
 
 withFixture("getschemametadata", async () => assertEqual(
-  ++COUNT,
   "getschemametadata",
   await runCheerioFn(
     getSchemaMetadata,
@@ -151,7 +123,6 @@ withFixture("getschemametadata", async () => assertEqual(
 ));
 
 withFixture("getinlinemetadata", async () => assertEqual(
-  ++COUNT,
   "getInlineMetadata",
   await runCheerioFn(
     getInlineMetadata,
@@ -172,7 +143,6 @@ withFixture("getinlinemetadata", async () => assertEqual(
 ));
 
 withFixture("testthumbnails", async () => assertEqual(
-  ++COUNT,
   "testThumbnails",
   await runCheerioFn(
     linter.testThumbnails,
@@ -184,7 +154,6 @@ withFixture("testthumbnails", async () => assertEqual(
 ));
 
 withFixture("testvideosize", async () => assertEqual(
-  ++COUNT,
   "testVideoSize",
   await runCheerioFn(
     linter.testVideoSize,
@@ -196,7 +165,6 @@ withFixture("testvideosize", async () => assertEqual(
 ));
 
 withFixture("testvalidity1", async () => assertEqual(
-  ++COUNT,
   "testValidity - valid",
   await runCheerioFn(
     linter.testValidity,
@@ -208,7 +176,6 @@ withFixture("testvalidity1", async () => assertEqual(
 ));
 
 withFixture("testvalidity2", async () => assertNotEqual(
-  ++COUNT,
   "testValidity - not valid",
   await runCheerioFn(
     linter.testValidity,
@@ -219,5 +186,27 @@ withFixture("testvalidity2", async () => assertNotEqual(
   }
 ));
 
+withFixture("testcanonical1", async () => assertEqual(
+  "testCanonical - canonical",
+  await runCheerioFn(
+    linter.testCanonical,
+    "https://regular-biology.glitch.me/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("testcanonical2", async () => assertNotEqual(
+  "testCanonical - not canonical",
+  await runCheerioFn(
+    linter.testCanonical,
+    "https://regular-biology.glitch.me/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
-console.log(`1..${COUNT}`);
+console.log(`1..8`);

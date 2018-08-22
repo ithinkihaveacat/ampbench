@@ -208,5 +208,28 @@ withFixture("testcanonical2", async () => assertNotEqual(
   }
 ));
 
+withFixture("testvideosize1", async () => assertEqual(
+  "testVideoSize - too big",
+  await runCheerioFn(
+    linter.testVideoSize,
+    "https://regular-biology.glitch.me/"
+  ),
+  {
+    message: "videos over 4MB: [https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4]",
+    status: "FAIL"
+  }
+));
+
+withFixture("testvideosize2", async () => assertEqual(
+  "testVideoSize - right size",
+  await runCheerioFn(
+    linter.testVideoSize,
+    "https://regular-biology.glitch.me/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
-console.log(`1..8`);
+console.log(`1..10`);

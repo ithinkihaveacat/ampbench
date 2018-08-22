@@ -264,5 +264,27 @@ withFixture("bookendsameorigin3", async () => assertNotEqual(
   }
 ));
 
+withFixture("bookendcache1", async () => assertEqual(
+  "testBookendCache - configured correctly",
+  await runCheerioFn(
+    linter.testBookendCache,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
+withFixture("bookendcache2", async () => assertNotEqual(
+  "testBookendCache - incorrect headers",
+  await runCheerioFn(
+    linter.testBookendCache,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
 console.log(`1..10`);

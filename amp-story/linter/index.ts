@@ -115,7 +115,7 @@ function testValidity($: CheerioStatic, url: string) {
 }
 
 function testCanonical($: CheerioStatic, url: string) {
-  const canonical = $('link[rel="canonical"]').attr("href");
+  const canonical = absoluteUrl($('link[rel="canonical"]').attr("href"), url);
   if (url !== canonical) {
     return FAIL({
       actual: canonical,

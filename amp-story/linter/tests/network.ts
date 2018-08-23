@@ -214,6 +214,17 @@ withFixture("testcanonical2", () => assertNotEqual(
   }
 ));
 
+withFixture("testcanonical3", () => assertEqual(
+  "testCanonical - relative",
+  runCheerioFn(
+    linter.testCanonical,
+    "https://regular-biology.glitch.me/"
+  ),
+  {
+    status: "OKAY"
+  }
+));
+
 withFixture("testvideosize1", () => assertEqual(
   "testVideoSize - too big",
   runCheerioFn(

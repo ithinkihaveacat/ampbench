@@ -378,19 +378,18 @@ const testAmpStoryV1: Test = ({$}) => {
   return isV1 ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
 };
 
-/*
-function testStoryV1Metadata($: CheerioStatic) {
-  if (!isStoryV1($)) return PASS();
-  const attr = [ "title", "publisher", "publisher-logo-src", "poster-portrait-src" ]
-    .map(attr => $(`amp-story[${attr}]`).length > 0 ? false : attr)
-    .filter(Boolean);
+function testAmpStoryV1Metadata($: CheerioStatic) {
+  const isV1 = $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
+  if (!isV1) { return PASS(); }
+  const attr: string[] = [ "title", "publisher", "publisher-logo-src", "poster-portrait-src" ]
+    .map(a => $(`amp-story[${a}]`).length > 0 ? false : a)
+    .filter(Boolean) as string[];
   if (attr.length > 0) {
     return WARNING(`<amp-story> is missing attribute(s) that will soon be mandatory: [${attr.join(", ")}]`);
   } else {
-    PASS();
+    return PASS();
   }
 }
-*/
 
 const testMetaCharsetFirst: Test = ({$}) => {
   const firstChild = $("head *:first-child");
@@ -459,6 +458,7 @@ const testAll = async (context: Context): Promise<{[key: string]: Message}> => {
     testCanonical,
     testAmpStory,
     testAmpStoryV1,
+    testAmpStoryV1Metadata,
     testSchemaMetadataRecent,
     testSchemaMetadataType,
     testBookendSameOrigin,
@@ -486,6 +486,7 @@ export {
   testAll,
   testAmpStory,
   testAmpStoryV1,
+  testAmpStoryV1Metadata,
   testBookendCache,
   testBookendSameOrigin,
   testCanonical,

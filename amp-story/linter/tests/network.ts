@@ -92,7 +92,7 @@ async function runUrlFn<T>(fn: (url: string) => T, url: string) {
 let COUNT = 0;
 
 withFixture("getschemametadata", async () => assertEqual(
-  "getschemametadata",
+  "getSchemaMetadata",
   await runCheerioFn(
     getSchemaMetadata,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"

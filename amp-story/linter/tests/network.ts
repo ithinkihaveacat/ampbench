@@ -54,13 +54,10 @@ async function assertEqual<T extends object>(
   expected: T
 ) {
   COUNT++;
-  const foo = await Promise.resolve(expected);
-  const bar = await Promise.resolve(actual);
-  const res = diff(foo, bar);
-  // const res = diff(
-  //   await Promise.resolve(expected),
-  //   await Promise.resolve(actual)
-  // );
+  const res = diff(
+    await Promise.resolve(expected),
+    await Promise.resolve(actual)
+  );
   if (res && res.length === 1) {
     console.log(`ok ${COUNT} - ${testName}`);
   } else {

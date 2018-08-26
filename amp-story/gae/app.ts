@@ -100,7 +100,8 @@ app.get("/lint", async (req, res, next) => {
       return;
     }
     const $ = cheerio.load(await r.text());
-    const data = await validate.testAll($, url);
+    const context = { $, url, headers: {} };
+    const data = await validate.testAll(context);
     res.status(200);
     res.setHeader("content-type", "text/json");
     res.send(JSON.stringify(data, undefined, 2));

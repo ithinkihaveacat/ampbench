@@ -101,10 +101,16 @@ app.get("/lint", async (req, res, next) => {
     }
     const $ = cheerio.load(await r.text());
     const context = { $, url, headers: {} };
-    const data = await validate.testAll(context);
+    const data = await validate.testAll(context) as {[key: string]: validate.Message};
     res.status(200);
     res.setHeader("content-type", "text/json");
-    res.send(JSON.stringify(data, undefined, 2));
+    const body = (() => {
+    if (req.query.type === "summary") {
+      return Object.keys(data).filter((k) => data[k].status === "OKAY").join(",");
+    } else {
+      return JSON.stringify(data, undefined, 2);
+    }})();
+    res.send(body);
     res.end();
   } catch (e) {
     console.error(e);

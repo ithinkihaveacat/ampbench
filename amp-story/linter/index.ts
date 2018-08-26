@@ -453,7 +453,7 @@ const testThumbnails: Test = async ({$}) => {
   return (errors.length > 0) ? FAIL(errors.join(",")) : PASS();
 };
 
-const testAll = async (context: Context) => {
+const testAll = async (context: Context): Promise<{[key: string]: Message}> => {
   const tests = [
     testValidity,
     testCanonical,
@@ -475,8 +475,8 @@ const testAll = async (context: Context) => {
       testFn.name.substring("test".length).toLowerCase(), // key
       v, // value
     ];
-  })) as Array<[string, any]>; // not sure why this cast is necessary, but...
-  return res.reduce((a: {[key: string]: any}, kv) => {
+  })) as Array<[string, Message]>; // not sure why this cast is necessary, but...
+  return res.reduce((a: {[key: string]: Message}, kv: [string, Message]) => {
     a[kv[0]] = kv[1];
     return a;
   }, {});

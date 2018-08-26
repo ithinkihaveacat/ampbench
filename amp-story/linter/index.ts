@@ -1,12 +1,13 @@
 /// <reference path="probe-image-size.d.ts" />
 
-import {resolve} from "url";
+import {readFileSync} from "fs";
+import {resolve, URL} from "url";
 // tslint:disable-next-line:no-var-requires
 const validator = require("amphtml-validator").newInstance(
   // Let's not fetch over the network on every run.
   // Use `yarn run update-validator` to update.
   // tslint:disable-next-line:no-var-requires
-  require("fs").readFileSync(`${__dirname}/validator.js`).toString(),
+  readFileSync(`${__dirname}/validator.js`).toString(),
 );
 import * as cheerio from "cheerio";
 import throat = require("throat");
@@ -25,13 +26,34 @@ const UA_GOOGLEBOT_MOBILE = [
 ].join(" ");
 
 export interface ActualExpected {
-  actual: string;
-  expected: string;
+  readonly actual: string;
+  readonly expected: string;
 }
 
 export interface Message {
-  status: string;
-  message?: string|ActualExpected;
+  readonly status: string;
+  readonly message?: string|ActualExpected;
+}
+
+export interface Context {
+  readonly url: string;
+  readonly $: CheerioStatic;
+  readonly headers: {
+    [key: string]: string;
+  };
+}
+
+export interface Test {
+  (context: Context): Promise<Message>;
+}
+
+interface InlineMetadata {
+  "title": string;
+  "publisher": string;
+  "publisher-logo-src": string;
+  "poster-portrait-src": string;
+  "poster-square-src"?: string;
+  "poster-landscape-src"?: string;
 }
 
 const PASS = (): Promise<Message> => Promise.resolve({status: "OKAY"});
@@ -43,7 +65,7 @@ const WARNING = (s: string|ActualExpected) => {
 };
 
 const getBody = throat(CONCURRENCY,
-  (s: string|Request, init = {}) => {
+  (context: Context, s: string|Request, init = {}) => {
     if (!("headers" in init)) {
       init.headers = {};
     }
@@ -55,17 +77,19 @@ const getBody = throat(CONCURRENCY,
 );
 
 const getUrl = throat(CONCURRENCY,
-  async (s: string|Request, init?: {}) => {
-    const res = await fetch(s, init);
+  async (context: Context, s: string|Request) => {
+    const res = await fetch(s, {headers: context.headers });
     return res.url;
   },
 );
 
 const getContentLength = throat(CONCURRENCY,
-  async (s: string|Request) => {
-    const options = {
-      method: "HEAD",
-    };
+  async (context: Context, s: string|Request) => {
+    const options = Object.assign(
+      {},
+      { method: "HEAD" },
+      { headers: context.headers }
+    );
     const res = await fetch(s, options);
     if (!res.ok) { return Promise.reject(res); }
     const contentLength = res.headers.get("content-length");
@@ -75,22 +99,12 @@ const getContentLength = throat(CONCURRENCY,
 
 const absoluteUrl = (s: string, base: string) => {
   return resolve(base, s);
-  // return new URL(s, base).toString();
 };
 
-function getSchemaMetadata($: CheerioStatic) {
+const getSchemaMetadata = ($: CheerioStatic) => {
   const metadata = JSON.parse($('script[type="application/ld+json"]').html() as string);
   return metadata ? metadata : {};
-}
-
-interface InlineMetadata {
-  "title": string;
-  "publisher": string;
-  "publisher-logo-src": string;
-  "poster-portrait-src": string;
-  "poster-square-src"?: string;
-  "poster-landscape-src"?: string;
-}
+};
 
 function getInlineMetadata($: CheerioStatic) {
   const e = $("amp-story");
@@ -109,20 +123,21 @@ function getImageSize(url: string): Promise<{width: number, height: number, [k: 
   return probe(url);
 }
 
-function testValidity($: CheerioStatic, url: string) {
+const testValidity: Test = ({$}) => {
   const res = validator.validateString($.html());
   return Promise.resolve(res.status === "PASS" ? PASS() : res);
-}
+};
 
-function testCanonical($: CheerioStatic, url: string) {
-  const canonical = absoluteUrl($('link[rel="canonical"]').attr("href"), url);
+const testCanonical: Test = (context) => {
+  const {$, url} = context;
+  const canonical = absoluteUrl($('link[rel="canonical"]').attr("href"), context.url);
   if (url !== canonical) {
     return FAIL({
       actual: canonical,
       expected: url,
     });
   }
-  return getUrl(canonical).then((s) => {
+  return getUrl(context, canonical).then((s) => {
     if (s === canonical) {
       return PASS();
      } else {
@@ -135,9 +150,9 @@ function testCanonical($: CheerioStatic, url: string) {
   ).catch(() => {
     return FAIL(`couldn't retrieve canonical ${canonical}`);
   });
-}
+};
 
-function testSchemaMetadataType($: CheerioStatic, url: string) {
+const testSchemaMetadataType: Test = ({$}) => {
   const metadata = getSchemaMetadata($);
   const type = metadata["@type"];
   if (type !== "Article" && type !== "NewsArticle" && type !== "ReportageNewsArticle") {
@@ -145,9 +160,9 @@ function testSchemaMetadataType($: CheerioStatic, url: string) {
   } else {
     return PASS();
   }
-}
+};
 
-function testSchemaMetadataRecent($: CheerioStatic, url: string) {
+const testSchemaMetadataRecent: Test = ({$}) => {
   const inLastMonth = (time: number) => {
     return  (time > Date.now() - (30 * 24 * 60 * 60 * 1000)) && (time < Date.now());
   };
@@ -170,20 +185,21 @@ function testSchemaMetadataRecent($: CheerioStatic, url: string) {
   } else {
     return WARNING(`datePublished [${datePublished}] or dateModified [${dateModified}] is old or in the future`);
   }
-}
+};
 
-function testAmpStory($: CheerioStatic, url: string) {
+const testAmpStory: Test = ({$}) => {
   if ($("body amp-story[standalone]").length === 1) {
     return PASS();
   } else {
     return FAIL(`couldn't find <amp-story standalone> component`);
   }
-}
+};
 
-function testVideoSize($: CheerioStatic, base: string) {
+const testVideoSize: Test = (context) => {
+  const {$} = context;
   return Promise.all($(`amp-video source[type="video/mp4"][src], amp-video[src]`).map(async (i, e) => {
-    const url = absoluteUrl($(e).attr("src"), base);
-    const length = await getContentLength(url);
+    const url = absoluteUrl($(e).attr("src"), context.url);
+    const length = await getContentLength(context, url);
     return { url, length };
   }).get() as any as Array<Promise<{ url: string, length: number }>>).then((args) => { // TODO(stillers): switch to Map
     return args.reduce((a, v) => {
@@ -198,7 +214,7 @@ function testVideoSize($: CheerioStatic, base: string) {
       return PASS();
     }
   });
-}
+};
 
 function addSourceOrigin(url: string, sourceOrigin: string) {
   const {parse, format} = require("url"); // use old API to work with node 6+
@@ -209,6 +225,7 @@ function addSourceOrigin(url: string, sourceOrigin: string) {
 }
 
 function buildCacheOrigin(cacheSuffix: string, url: string): string {
+  // console.log({cacheSuffix, url});
   function convertHost(hostname: string) {
     return punycode
       .toASCII(hostname)
@@ -292,12 +309,14 @@ function buildSourceOrigin(url: string) {
   return `${obj.protocol}//${obj.host}`;
 }
 
-function canXhrSameOrigin(url: string, xhrUrl: string) {
-  const sourceOrigin = buildSourceOrigin(url);
+function canXhrSameOrigin(context: Context, xhrUrl: string) {
+  const sourceOrigin = buildSourceOrigin(context.url);
 
-  const headers = {
-    "amp-same-origin": "true",
-  };
+  const headers = Object.assign(
+    {},
+    {"amp-same-origin": "true"},
+    {headers: context.headers}
+  );
 
   const curl = `curl -i -H 'amp-same-origin: true' '${addSourceOrigin(xhrUrl, sourceOrigin)}'`;
 
@@ -307,13 +326,15 @@ function canXhrSameOrigin(url: string, xhrUrl: string) {
     .then(PASS, (e: Error) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
-function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
-  const sourceOrigin = buildSourceOrigin(url);
-  const origin = buildCacheOrigin(cacheSuffix, url);
+function canXhrCache(context: Context, xhrUrl: string, cacheSuffix: string) {
+  const sourceOrigin = buildSourceOrigin(context.url);
+  const origin = buildCacheOrigin(cacheSuffix, context.url);
 
-  const headers = {
-    origin,
-  };
+  const headers = Object.assign(
+    {},
+    {origin},
+    {headers: context.headers}
+  );
 
   const curl = `curl -i -H 'origin: ${origin}' '${addSourceOrigin(xhrUrl, sourceOrigin)}'`;
 
@@ -324,36 +345,38 @@ function canXhrCache(url: string, xhrUrl: string, cacheSuffix: string) {
     .then(PASS, (e) => FAIL(`can't retrieve bookend: ${e.message} [debug: ${curl}]`));
 }
 
-function testBookendSameOrigin($: CheerioStatic, url: string) {
+const testBookendSameOrigin: Test = (context) => {
+  const {$, url} = context;
   const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
   if (!bookendConfigSrc) { return WARNING("amp-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
 
-  return canXhrSameOrigin(url, bookendUrl);
-}
+  return canXhrSameOrigin(context, bookendUrl);
+};
 
-function testBookendCache($: CheerioStatic, url: string) {
+const testBookendCache: Test = (context) => {
+  const {$, url} = context;
   const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
   if (!bookendConfigSrc) { return WARNING("bookend-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
 
-  return canXhrCache(url, bookendUrl, "cdn.ampproject.org");
-}
+  return canXhrCache(context, bookendUrl, "cdn.ampproject.org");
+};
 
-function testVideoSource($: CheerioStatic, url: string) {
+const testVideoSource: Test = ({$}) => {
   if ($("amp-video[src]").length > 0) {
     return FAIL("<amp-video src> used instead of <amp-video><source/></amp-video>");
   } else {
     return PASS();
   }
-}
+};
 
-function testAmpStoryV1($: CheerioStatic, url: string) {
+const testAmpStoryV1: Test = ({$}) => {
   const isV1 = $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
   return isV1 ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
-}
+};
 
 /*
 function testStoryV1Metadata($: CheerioStatic) {
@@ -369,22 +392,22 @@ function testStoryV1Metadata($: CheerioStatic) {
 }
 */
 
-function testMetaCharsetFirst($: CheerioStatic, url: string) {
+const testMetaCharsetFirst: Test = ({$}) => {
   const firstChild = $("head *:first-child");
   const charset = firstChild.attr("charset");
   return !charset ? FAIL(`<meta charset> not the first <meta> tag`) : PASS();
-}
+};
 
-function testMostlyText($: CheerioStatic, url: string) {
+const testMostlyText: Test = ({$}) => {
   const text = $("amp-story").text();
   if (text.length > 100) {
     return PASS();
   } else {
     return WARNING(`minimal text in the story [${text}]`);
   }
-}
+};
 
-async function testThumbnails($: CheerioStatic) {
+const testThumbnails: Test = async ({$}) => {
   async function isSquare(url: string) {
     const {width, height} = await getImageSize(url);
     return width === height;
@@ -428,9 +451,9 @@ async function testThumbnails($: CheerioStatic) {
   }
 
   return (errors.length > 0) ? FAIL(errors.join(",")) : PASS();
-}
+};
 
-async function testAll($: CheerioStatic, url: string) {
+const testAll = async (context: Context) => {
   const tests = [
     testValidity,
     testCanonical,
@@ -446,16 +469,18 @@ async function testAll($: CheerioStatic, url: string) {
     testThumbnails,
     testMetaCharsetFirst,
   ];
-  const res = await Promise.all(tests.map((f) => f($, url).then((v) => [
-    f.name.substring("test".length).toLowerCase(), // key
-    v, // value
-  ]))) as Array<[string, any]>; // not sure why this cast is necessary, but...
-  // new Map(res) will return a map but that doesn't play well with JSON
+  const res = await Promise.all(tests.map(async (testFn) => {
+    const v = await testFn(context);
+    return [
+      testFn.name.substring("test".length).toLowerCase(), // key
+      v, // value
+    ];
+  })) as Array<[string, any]>; // not sure why this cast is necessary, but...
   return res.reduce((a: {[key: string]: any}, kv) => {
     a[kv[0]] = kv[1];
     return a;
   }, {});
-}
+};
 
 export {
   testAll,
@@ -481,17 +506,50 @@ export {
 
 if (require.main === module) { // invoked directly?
 
-  if (process.argv.length !== 3) {
-    console.error(`usage: ${basename(process.argv[0])} ${basename(process.argv[1])} URL`);
+  if (process.argv.length <= 2) {
+    console.error(`usage: ${basename(process.argv[0])} ${basename(process.argv[1])} URL [copy_as_cURL]`);
     process.exit(1);
   }
 
   const url = process.argv[2];
 
-  getBody(url)
-    .then(r => r.ok ? r.text() : Promise.reject(`couldn't load [${url}]`))
+  function seq(first: number, last: number): number[] {
+    if (first < last) {
+      return [first].concat(seq(first + 1, last));
+    } else if (first > last) {
+      return [last].concat(seq(first, last - 1));
+    } else {
+      return [first];
+    }
+  }
+
+  const headers = seq(2, process.argv.length - 1)
+    .filter(n => process.argv[n] === "-H")
+    .map(n => process.argv[n + 1])
+    .map(s => {
+      const [h, ...v] = s.split(": ");
+      return [h, v.join("")];
+    })
+    .reduce((a: {[key: string]: any}, kv) => {
+      a[kv[0]] = kv[1];
+      return a;
+    }, {});
+
+  // console.log(headers);
+
+  const body = (() => {
+    if (url === "-") {
+      return Promise.resolve(readFileSync("/dev/stdin").toString());
+    } else {
+      return fetch(url, { headers }).then(
+        r => r.ok ? r.text() : Promise.reject(`couldn't load [${url}]: ${r.statusText}`)
+      );
+    }
+  })();
+
+  body
     .then(b => cheerio.load(b))
-    .then($ => testAll($, url))
+    .then($ => testAll({$, headers, url}))
     .then(console.log)
     .then(() => process.exit(0))
     .catch((e) => console.error(`error: ${e}`));

@@ -84,8 +84,20 @@ async function assertNotEqual<T extends object>(
   return res;
 }
 
+async function runTest<T>(fn: linter.Test, url: string) {
+  const res = await fetch(url);
+  const body = await res.text();
+  const $ = cheerio.load(body);
+  const context = {
+    $,
+    headers: {},
+    url
+  };
+  return Promise.resolve(fn(context));
+}
+
 async function runCheerioFn<T>(fn: ($: CheerioStatic, url?: string) => T|Promise<T>, url: string) {
-  const res = await getBody(url);
+  const res = await fetch(url);
   const body = await res.text();
   const $ = cheerio.load(body);
   return Promise.resolve(fn($, url));
@@ -150,7 +162,7 @@ withFixture("getinlinemetadata", () => assertEqual(
 
 withFixture("thumbnails1", () => assertEqual(
   "testThumbnails - correctly sized",
-  runCheerioFn(
+  runTest(
     linter.testThumbnails,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
@@ -161,7 +173,7 @@ withFixture("thumbnails1", () => assertEqual(
 
 withFixture("thumbnails2", () => assertNotEqual(
   "testThumbnails - publisher-logo-src missing",
-  runCheerioFn(
+  runTest(
     linter.testThumbnails,
     "https://regular-biology.glitch.me/"
   ),
@@ -172,7 +184,7 @@ withFixture("thumbnails2", () => assertNotEqual(
 
 withFixture("testvalidity1", () => assertEqual(
   "testValidity - valid",
-  runCheerioFn(
+  runTest(
     linter.testValidity,
     "https://www.ampproject.org/"
   ),
@@ -183,7 +195,7 @@ withFixture("testvalidity1", () => assertEqual(
 
 withFixture("testvalidity2", async () => assertNotEqual(
   "testValidity - not valid",
-  await runCheerioFn(
+  await runTest(
     linter.testValidity,
     "https://precious-sturgeon.glitch.me/"
   ),
@@ -194,7 +206,7 @@ withFixture("testvalidity2", async () => assertNotEqual(
 
 withFixture("testcanonical1", () => assertEqual(
   "testCanonical - canonical",
-  runCheerioFn(
+  runTest(
     linter.testCanonical,
     "https://regular-biology.glitch.me/"
   ),
@@ -205,7 +217,7 @@ withFixture("testcanonical1", () => assertEqual(
 
 withFixture("testcanonical2", () => assertNotEqual(
   "testCanonical - not canonical",
-  runCheerioFn(
+  runTest(
     linter.testCanonical,
     "https://regular-biology.glitch.me/"
   ),
@@ -216,7 +228,7 @@ withFixture("testcanonical2", () => assertNotEqual(
 
 withFixture("testcanonical3", () => assertEqual(
   "testCanonical - relative",
-  runCheerioFn(
+  runTest(
     linter.testCanonical,
     "https://regular-biology.glitch.me/"
   ),
@@ -227,7 +239,7 @@ withFixture("testcanonical3", () => assertEqual(
 
 withFixture("testvideosize1", () => assertEqual(
   "testVideoSize - too big",
-  runCheerioFn(
+  runTest(
     linter.testVideoSize,
     "https://regular-biology.glitch.me/"
   ),
@@ -239,7 +251,7 @@ withFixture("testvideosize1", () => assertEqual(
 
 withFixture("testvideosize2", () => assertEqual(
   "testVideoSize - good size #1",
-  runCheerioFn(
+  runTest(
     linter.testVideoSize,
     "https://regular-biology.glitch.me/"
   ),
@@ -250,7 +262,7 @@ withFixture("testvideosize2", () => assertEqual(
 
 withFixture("testvideosize3", () => assertEqual(
   "testVideoSize - good size #2",
-  runCheerioFn(
+  runTest(
     linter.testVideoSize,
     "https://ampbyexample.com/stories/features/media/preview/embed/"
   ),
@@ -261,7 +273,7 @@ withFixture("testvideosize3", () => assertEqual(
 
 withFixture("bookendsameorigin1", () => assertEqual(
   "testBookendSameOrigin - configured correctly",
-  runCheerioFn(
+  runTest(
     linter.testBookendSameOrigin,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
@@ -272,7 +284,7 @@ withFixture("bookendsameorigin1", () => assertEqual(
 
 withFixture("bookendsameorigin2", () => assertNotEqual(
   "testBookendSameOrigin - bookend not application/json",
-  runCheerioFn(
+  runTest(
     linter.testBookendSameOrigin,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
@@ -283,7 +295,7 @@ withFixture("bookendsameorigin2", () => assertNotEqual(
 
 withFixture("bookendsameorigin3", () => assertNotEqual(
   "testBookendSameOrigin - bookend not JSON",
-  runCheerioFn(
+  runTest(
     linter.testBookendSameOrigin,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
@@ -294,7 +306,7 @@ withFixture("bookendsameorigin3", () => assertNotEqual(
 
 withFixture("bookendcache1", () => assertEqual(
   "testBookendCache - configured correctly",
-  runCheerioFn(
+  runTest(
     linter.testBookendCache,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
@@ -305,7 +317,7 @@ withFixture("bookendcache1", () => assertEqual(
 
 withFixture("bookendcache2", () => assertNotEqual(
   "testBookendCache - incorrect headers",
-  runCheerioFn(
+  runTest(
     linter.testBookendCache,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),

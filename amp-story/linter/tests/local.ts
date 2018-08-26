@@ -6,7 +6,7 @@ import * as cheerio from "cheerio";
 import {diffJson as diff} from "diff";
 import * as fs from "fs";
 
-import * as validate from "../index";
+import * as linter from "../index";
 
 async function run(prefix: string) {
 
@@ -19,7 +19,7 @@ async function run(prefix: string) {
 
   const name = basename(match[1]);
 
-  if (!(name in validate)) {
+  if (!(name in linter)) {
     console.warn(`${name}() not found`);
     return;
   }
@@ -46,8 +46,13 @@ async function run(prefix: string) {
 
   const url = expected._url || "https://example.com/";
 
-  const fn = (validate as any)[name] as (($: CheerioStatic, url: string) => Promise<validate.Message>);
-  const actual = await fn($, url);
+  const fn = (linter as any)[name] as linter.Test;
+  const context = {
+    $,
+    headers: {},
+    url
+  };
+  const actual = await fn(context);
 
   return diff(expected, actual);
 }

@@ -106,7 +106,7 @@ app.get("/lint", async (req, res, next) => {
     res.setHeader("content-type", "text/json");
     const body = (() => {
     if (req.query.type === "summary") {
-      return Object.keys(data).filter((k) => data[k].status === "OKAY").join(",");
+      return Object.keys(data).filter((k) => data[k].status !== "OKAY").join(",");
     } else {
       return JSON.stringify(data, undefined, 2);
     }})();

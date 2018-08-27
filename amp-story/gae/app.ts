@@ -18,12 +18,15 @@ import * as fs from "fs";
 import {URL} from "url";
 
 import * as cheerio from "cheerio";
+import * as debug from "debug";
 import express = require("express");
 import {compile, registerHelper} from "handlebars";
 import {default as fetch, Request, RequestInit, Response} from "node-fetch";
 
 import ampCors from "./amp-cors.js";
 import * as validate from "./amp-story-linter";
+
+const log = debug("linter");
 
 const UA_GOOGLEBOT_MOBILE = [
   "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36",
@@ -84,19 +87,22 @@ app.get("/lint", async (req, res, next) => {
   }
 
   try {
+    log({url});
+    console.log({url});
     const r = await fetch(url, {
       headers: {
         "user-agent": UA_GOOGLEBOT_MOBILE,
       },
     });
     if (!r.ok) {
-      res.status(400);
+      res.status(200);
       res.setHeader("content-type", "application/json");
       res.send(JSON.stringify({
         message: `couldn't load [${url}]`,
         status: "error",
       }));
       res.end();
+      r.text().then(console.error);
       return;
     }
     const $ = cheerio.load(await r.text());
@@ -105,11 +111,12 @@ app.get("/lint", async (req, res, next) => {
     res.status(200);
     res.setHeader("content-type", "text/json");
     const body = (() => {
-    if (req.query.type === "summary") {
-      return Object.keys(data).filter((k) => data[k].status !== "OKAY").join(",");
-    } else {
-      return JSON.stringify(data, undefined, 2);
-    }})();
+      if (req.query.type === "summary") {
+        return Object.keys(data).filter((k) => data[k].status !== "OKAY").join(",");
+      } else {
+        return JSON.stringify(data, undefined, 2);
+      }
+    })();
     res.send(body);
     res.end();
   } catch (e) {

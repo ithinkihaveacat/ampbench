@@ -98,7 +98,11 @@ const getContentLength = throat(CONCURRENCY,
 );
 
 const absoluteUrl = (s: string, base: string) => {
-  return resolve(base, s);
+  if (typeof s !== "string" || typeof base !== "string") {
+    return "";
+  } else {
+    return resolve(base, s);
+  }
 };
 
 const getSchemaMetadata = ($: CheerioStatic) => {
@@ -130,7 +134,11 @@ const testValidity: Test = ({$}) => {
 
 const testCanonical: Test = (context) => {
   const {$, url} = context;
-  const canonical = absoluteUrl($('link[rel="canonical"]').attr("href"), context.url);
+  const href = $('link[rel="canonical"]').attr("href");
+  if (!href) {
+    return FAIL("<link rel=canonical> not specified");
+  }
+  const canonical = absoluteUrl(href, url);
   if (url !== canonical) {
     return FAIL({
       actual: canonical,

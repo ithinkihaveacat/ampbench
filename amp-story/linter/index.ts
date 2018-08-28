@@ -378,7 +378,7 @@ const testAmpStoryV1: Test = ({$}) => {
   return isV1 ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
 };
 
-function testAmpStoryV1Metadata($: CheerioStatic) {
+const testAmpStoryV1Metadata: Test = ({$}) => {
   const isV1 = $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
   if (!isV1) { return PASS(); }
   const attr: string[] = [ "title", "publisher", "publisher-logo-src", "poster-portrait-src" ]
@@ -389,7 +389,7 @@ function testAmpStoryV1Metadata($: CheerioStatic) {
   } else {
     return PASS();
   }
-}
+};
 
 const testMetaCharsetFirst: Test = ({$}) => {
   const firstChild = $("head *:first-child");

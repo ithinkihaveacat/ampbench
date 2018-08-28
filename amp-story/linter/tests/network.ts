@@ -86,18 +86,6 @@ async function assertNotEqual<T extends object>(
   return res;
 }
 
-<<<<<<< HEAD
-async function runTest<T>(fn: linter.Test, url: string) {
-  const res = await fetch(url);
-  const body = await res.text();
-  const $ = cheerio.load(body);
-  const context = {
-    $,
-    headers: {},
-    url
-  };
-  return Promise.resolve(fn(context));
-=======
 async function assertMatch<T extends object>(
   testName: string,
   actual: T|Promise<T>,
@@ -110,7 +98,18 @@ async function assertMatch<T extends object>(
   } else {
     console.log(`not ok ${COUNT} - ${testName} actual: ${s}`);
   }
->>>>>>> Add testAmpStoryV1Metadata + refactorings
+}
+
+async function runTest<T>(fn: linter.Test, url: string) {
+  const res = await fetch(url);
+  const body = await res.text();
+  const $ = cheerio.load(body);
+  const context = {
+    $,
+    headers: {},
+    url
+  };
+  return Promise.resolve(fn(context));
 }
 
 async function runCheerioFn<T>(fn: ($: CheerioStatic, url?: string) => T|Promise<T>, url: string) {
@@ -210,7 +209,7 @@ withFixture("testvalidity1", () => assertEqual(
 
 withFixture("testvalidity2", async () => assertNotEqual(
   "testValidity - not valid",
-  await runTest(
+  runTest(
     linter.testValidity,
     "https://precious-sturgeon.glitch.me/"
   ),
@@ -335,7 +334,7 @@ withFixture("bookendcache2", () => assertMatch(
 
 withFixture("ampstoryv1metadata1", () => assertEqual(
   "testAmpStoryV1Metadata - valid metadata",
-  runCheerioFn(
+  runTest(
     linter.testAmpStoryV1Metadata,
     "https://ithinkihaveacat.github.io/hello-world-amp-story/"
   ),
@@ -346,7 +345,7 @@ withFixture("ampstoryv1metadata1", () => assertEqual(
 
 withFixture("ampstoryv1metadata2", () => assertMatch(
   "testAmpStoryV1Metadata - invalid metadata",
-  runCheerioFn(
+  runTest(
     linter.testAmpStoryV1Metadata,
     "https://ithinkihaveacat-hello-world-amp-story-7.glitch.me/"
   ),

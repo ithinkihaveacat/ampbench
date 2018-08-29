@@ -312,6 +312,17 @@ withFixture("bookendsameorigin3", () => assertMatch(
   "JSON"
 ));
 
+withFixture("bookendsameorgin4", () => assertEqual(
+  "testBookendSameOrigin - v0 AMP Story - configured correctly",
+  runTest(
+    linter.testBookendSameOrigin,
+    "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+  ),
+  {
+    status: "OKAY",
+  }
+));
+
 withFixture("bookendcache1", () => assertEqual(
   "testBookendCache - configured correctly",
   runTest(

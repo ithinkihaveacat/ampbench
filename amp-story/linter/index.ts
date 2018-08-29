@@ -127,6 +127,14 @@ function getImageSize(url: string): Promise<{width: number, height: number, [k: 
   return probe(url);
 }
 
+function fetchToCurl(url: string, init: { headers?: { [k: string]: string } } = { headers: {} }) {
+  const headers = init.headers || {};
+
+  const h = Object.keys(headers).map(k => `-H '${k}: ${headers[k]}'`).join(" ");
+
+  return `curl -i ${h} ${url}`;
+}
+
 const testValidity: Test = ({$}) => {
   const res = validator.validateString($.html());
   return Promise.resolve(res.status === "PASS" ? PASS() : res);
@@ -323,10 +331,10 @@ function canXhrSameOrigin(context: Context, xhrUrl: string) {
   const headers = Object.assign(
     {},
     {"amp-same-origin": "true"},
-    {headers: context.headers}
+    context.headers
   );
 
-  const curl = `curl -i -H 'amp-same-origin: true' '${addSourceOrigin(xhrUrl, sourceOrigin)}'`;
+  const curl = fetchToCurl(addSourceOrigin(xhrUrl, sourceOrigin), { headers });
 
   return fetch(addSourceOrigin(xhrUrl, sourceOrigin), {headers})
     .then(isStatusOk)
@@ -341,10 +349,10 @@ function canXhrCache(context: Context, xhrUrl: string, cacheSuffix: string) {
   const headers = Object.assign(
     {},
     {origin},
-    {headers: context.headers}
+    context.headers
   );
 
-  const curl = `curl -i -H 'origin: ${origin}' '${addSourceOrigin(xhrUrl, sourceOrigin)}'`;
+  const curl = fetchToCurl(addSourceOrigin(xhrUrl, sourceOrigin), { headers });
 
   return fetch(addSourceOrigin(xhrUrl, sourceOrigin), {headers})
     .then(isStatusOk)
@@ -355,7 +363,9 @@ function canXhrCache(context: Context, xhrUrl: string, cacheSuffix: string) {
 
 const testBookendSameOrigin: Test = (context) => {
   const {$, url} = context;
-  const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
+  const s1 = $("amp-story amp-story-bookend").attr("src");
+  const s2 = $("amp-story").attr("bookend-config-src");
+  const bookendConfigSrc = s1 || s2;
   if (!bookendConfigSrc) { return WARNING("amp-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
@@ -365,7 +375,9 @@ const testBookendSameOrigin: Test = (context) => {
 
 const testBookendCache: Test = (context) => {
   const {$, url} = context;
-  const bookendConfigSrc = $("amp-story amp-story-bookend").attr("src");
+  const s1 = $("amp-story amp-story-bookend").attr("src");
+  const s2 = $("amp-story").attr("bookend-config-src");
+  const bookendConfigSrc = s1 || s2;
   if (!bookendConfigSrc) { return WARNING("bookend-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendConfigSrc, url);
   // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');

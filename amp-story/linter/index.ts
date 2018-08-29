@@ -132,7 +132,7 @@ function fetchToCurl(url: string, init: { headers?: { [k: string]: string } } = 
 
   const h = Object.keys(headers).map(k => `-H '${k}: ${headers[k]}'`).join(" ");
 
-  return `curl -i ${h} ${url}`;
+  return `curl -i ${h} '${url}'`;
 }
 
 const testValidity: Test = ({$}) => {
@@ -365,10 +365,9 @@ const testBookendSameOrigin: Test = (context) => {
   const {$, url} = context;
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
-  const bookendConfigSrc = s1 || s2;
-  if (!bookendConfigSrc) { return WARNING("amp-story-bookend missing"); }
-  const bookendUrl = absoluteUrl(bookendConfigSrc, url);
-  // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
+  const bookendSrc = s1 || s2;
+  if (!bookendSrc) { return WARNING("amp-story-bookend missing"); }
+  const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrSameOrigin(context, bookendUrl);
 };
@@ -377,10 +376,9 @@ const testBookendCache: Test = (context) => {
   const {$, url} = context;
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
-  const bookendConfigSrc = s1 || s2;
-  if (!bookendConfigSrc) { return WARNING("bookend-story-bookend missing"); }
-  const bookendUrl = absoluteUrl(bookendConfigSrc, url);
-  // if (bookendUrl !== bookendConfigSrc) return WARNING('bookend-config-src not absolute');
+  const bookendSrc = s1 || s2;
+  if (!bookendSrc) { return WARNING("bookend-story-bookend missing"); }
+  const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrCache(context, bookendUrl, "cdn.ampproject.org");
 };

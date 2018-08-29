@@ -50,8 +50,8 @@ const withFixture = throat(1,
 
 async function assertEqual<T extends object>(
   testName: string,
-  actual: Promise<T>,
-  expected: T
+  actual: T|Promise<T>,
+  expected: T|Promise<T>
 ) {
   COUNT++;
   const res = diff(
@@ -61,7 +61,8 @@ async function assertEqual<T extends object>(
   if (res && res.length === 1) {
     console.log(`ok ${COUNT} - ${testName}`);
   } else {
-    console.log(`not ok ${COUNT} - ${testName} actual: ${JSON.stringify(actual)}`);
+    const s = JSON.stringify(await Promise.resolve(actual));
+    console.log(`not ok ${COUNT} - ${testName} actual: ${s}`);
   }
   return res;
 }
@@ -77,11 +78,26 @@ async function assertNotEqual<T extends object>(
     await Promise.resolve(actual)
   );
   if (res && res.length === 1) {
-    console.log(`not ok ${COUNT} - ${testName} actual: ${JSON.stringify(actual)}`);
+    const s = JSON.stringify(await Promise.resolve(actual));
+    console.log(`not ok ${COUNT} - ${testName} actual: ${s}`);
   } else {
     console.log(`ok ${COUNT} - ${testName}`);
   }
   return res;
+}
+
+async function assertMatch<T extends object>(
+  testName: string,
+  actual: T|Promise<T>,
+  expected: string
+) {
+  COUNT++;
+  const s = JSON.stringify(await Promise.resolve(actual));
+  if (s.match(expected)) {
+    console.log(`ok ${COUNT} - ${testName}`);
+  } else {
+    console.log(`not ok ${COUNT} - ${testName} actual: ${s}`);
+  }
 }
 
 async function runTest<T>(fn: linter.Test, url: string) {
@@ -171,15 +187,13 @@ withFixture("thumbnails1", () => assertEqual(
   }
 ));
 
-withFixture("thumbnails2", () => assertNotEqual(
+withFixture("thumbnails2", () => assertMatch(
   "testThumbnails - publisher-logo-src missing",
   runTest(
     linter.testThumbnails,
     "https://regular-biology.glitch.me/"
   ),
-  {
-    status: "OKAY"
-  }
+  "publisher-logo-src"
 ));
 
 withFixture("testvalidity1", () => assertEqual(
@@ -195,7 +209,7 @@ withFixture("testvalidity1", () => assertEqual(
 
 withFixture("testvalidity2", async () => assertNotEqual(
   "testValidity - not valid",
-  await runTest(
+  runTest(
     linter.testValidity,
     "https://precious-sturgeon.glitch.me/"
   ),
@@ -215,15 +229,13 @@ withFixture("testcanonical1", () => assertEqual(
   }
 ));
 
-withFixture("testcanonical2", () => assertNotEqual(
+withFixture("testcanonical2", () => assertMatch(
   "testCanonical - not canonical",
   runTest(
     linter.testCanonical,
     "https://regular-biology.glitch.me/"
   ),
-  {
-    status: "OKAY"
-  }
+  "https://regular-biology.glitch.me/"
 ));
 
 withFixture("testcanonical3", () => assertEqual(
@@ -282,26 +294,22 @@ withFixture("bookendsameorigin1", () => assertEqual(
   }
 ));
 
-withFixture("bookendsameorigin2", () => assertNotEqual(
+withFixture("bookendsameorigin2", () => assertMatch(
   "testBookendSameOrigin - bookend not application/json",
   runTest(
     linter.testBookendSameOrigin,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
-  {
-    status: "OKAY"
-  }
+  "application/json"
 ));
 
-withFixture("bookendsameorigin3", () => assertNotEqual(
+withFixture("bookendsameorigin3", () => assertMatch(
   "testBookendSameOrigin - bookend not JSON",
   runTest(
     linter.testBookendSameOrigin,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
-  {
-    status: "OKAY"
-  }
+  "JSON"
 ));
 
 withFixture("bookendcache1", () => assertEqual(
@@ -315,15 +323,33 @@ withFixture("bookendcache1", () => assertEqual(
   }
 ));
 
-withFixture("bookendcache2", () => assertNotEqual(
+withFixture("bookendcache2", () => assertMatch(
   "testBookendCache - incorrect headers",
   runTest(
     linter.testBookendCache,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
+  "access-control-allow-origin"
+));
+
+withFixture("ampstoryv1metadata1", () => assertEqual(
+  "testAmpStoryV1Metadata - valid metadata",
+  runTest(
+    linter.testAmpStoryV1Metadata,
+    "https://ithinkihaveacat.github.io/hello-world-amp-story/"
+  ),
   {
     status: "OKAY"
   }
+));
+
+withFixture("ampstoryv1metadata2", () => assertMatch(
+  "testAmpStoryV1Metadata - invalid metadata",
+  runTest(
+    linter.testAmpStoryV1Metadata,
+    "https://ithinkihaveacat-hello-world-amp-story-7.glitch.me/"
+  ),
+  "publisher-logo-src"
 ));
 
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)

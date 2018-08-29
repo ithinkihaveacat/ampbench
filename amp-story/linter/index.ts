@@ -436,13 +436,13 @@ const testThumbnails: Test = async ({$}) => {
   k = "publisher-logo-src";
   v = inlineMetadata[k];
   if (!v || !(await isSquare(v))) {
-    errors.push(`[${k}] (${v}) is missing or not square (1x1)`);
+    errors.push(`[${k}] (${v}) is missing or not square (1:1)`);
   }
 
   k = "poster-portrait-src";
   v = inlineMetadata[k];
   if (!v || !(await isPortrait(v))) {
-    errors.push(`[${k}] (${v}) is missing or not portrait (3x4)`);
+    errors.push(`[${k}] (${v}) is missing or not portrait (3:4)`);
   }
 
   k = "poster-square-src";
@@ -454,7 +454,7 @@ const testThumbnails: Test = async ({$}) => {
   k = "poster-landscape-src";
   v = inlineMetadata[k];
   if (v && !(await isLandscape(v))) {
-    errors.push(`[${k}] ($v) is not landscape (4x3)`);
+    errors.push(`[${k}] ($v) is not landscape (4:3)`);
   }
 
   return (errors.length > 0) ? FAIL(errors.join(",")) : PASS();

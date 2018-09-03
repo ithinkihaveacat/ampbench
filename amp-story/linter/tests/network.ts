@@ -16,6 +16,8 @@ import * as linter from "..";
 
 import throat = require("throat");
 
+const PASS = linter.PASS();
+
 const log = debug("linter");
 
 nockBack.fixtures = `${__dirname}/${FIXTURES}`;
@@ -182,9 +184,7 @@ withFixture("thumbnails1", () => assertEqual(
     linter.testThumbnails,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
-  {
-    status: "OKAY",
-  }
+  PASS
 ));
 
 withFixture("thumbnails2", () => assertMatch(
@@ -202,9 +202,7 @@ withFixture("testvalidity1", () => assertEqual(
     linter.testValidity,
     "https://www.ampproject.org/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("testvalidity2", async () => assertNotEqual(
@@ -213,9 +211,7 @@ withFixture("testvalidity2", async () => assertNotEqual(
     linter.testValidity,
     "https://precious-sturgeon.glitch.me/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("testcanonical1", () => assertEqual(
@@ -224,9 +220,7 @@ withFixture("testcanonical1", () => assertEqual(
     linter.testCanonical,
     "https://regular-biology.glitch.me/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("testcanonical2", () => assertMatch(
@@ -244,9 +238,7 @@ withFixture("testcanonical3", () => assertEqual(
     linter.testCanonical,
     "https://regular-biology.glitch.me/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("testvideosize1", () => assertEqual(
@@ -267,9 +259,7 @@ withFixture("testvideosize2", () => assertEqual(
     linter.testVideoSize,
     "https://regular-biology.glitch.me/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("testvideosize3", () => assertEqual(
@@ -278,9 +268,7 @@ withFixture("testvideosize3", () => assertEqual(
     linter.testVideoSize,
     "https://ampbyexample.com/stories/features/media/preview/embed/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("bookendsameorigin1", () => assertEqual(
@@ -289,9 +277,7 @@ withFixture("bookendsameorigin1", () => assertEqual(
     linter.testBookendSameOrigin,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("bookendsameorigin2", () => assertMatch(
@@ -318,9 +304,7 @@ withFixture("bookendcache1", () => assertEqual(
     linter.testBookendCache,
     "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("bookendcache2", () => assertMatch(
@@ -338,9 +322,7 @@ withFixture("ampstoryv1metadata1", () => assertEqual(
     linter.testAmpStoryV1Metadata,
     "https://ithinkihaveacat.github.io/hello-world-amp-story/"
   ),
-  {
-    status: "OKAY"
-  }
+  PASS
 ));
 
 withFixture("ampstoryv1metadata2", () => assertMatch(
@@ -353,4 +335,4 @@ withFixture("ampstoryv1metadata2", () => assertMatch(
 ));
 
 console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
-console.log(`1..16`);
+console.log(`1..19`);

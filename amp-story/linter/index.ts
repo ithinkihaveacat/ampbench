@@ -56,12 +56,15 @@ interface InlineMetadata {
   "poster-landscape-src"?: string;
 }
 
-const PASS = (): Promise<Message> => Promise.resolve({status: "OKAY"});
-const FAIL = (s: string|ActualExpected): Promise<Message> => {
+export const PASS = (): Promise<Message> => Promise.resolve({status: "PASS"});
+export const FAIL = (s: string|ActualExpected) => {
   return Promise.resolve({status: "FAIL", message: s});
 };
-const WARNING = (s: string|ActualExpected) => {
-  return Promise.resolve({status: "WARNING", message: s});
+export const WARN = (s: string|ActualExpected) => {
+  return Promise.resolve({status: "WARN", message: s});
+};
+export const INFO = (s: string|ActualExpected) => {
+  return Promise.resolve({status: "INFO", message: s});
 };
 
 const getBody = throat(CONCURRENCY,
@@ -172,7 +175,7 @@ const testSchemaMetadataType: Test = ({$}) => {
   const metadata = getSchemaMetadata($);
   const type = metadata["@type"];
   if (type !== "Article" && type !== "NewsArticle" && type !== "ReportageNewsArticle") {
-    return WARNING(`@type is not 'Article' or 'NewsArticle' or 'ReportageNewsArticle'`);
+    return WARN(`@type is not 'Article' or 'NewsArticle' or 'ReportageNewsArticle'`);
   } else {
     return PASS();
   }
@@ -199,7 +202,7 @@ const testSchemaMetadataRecent: Test = ({$}) => {
   if (inLastMonth(timePublished) && inLastMonth(timeModified)) {
     return PASS();
   } else {
-    return WARNING(`datePublished [${datePublished}] or dateModified [${dateModified}] is old or in the future`);
+    return WARN(`datePublished [${datePublished}] or dateModified [${dateModified}] is old or in the future`);
   }
 };
 
@@ -366,7 +369,7 @@ const testBookendSameOrigin: Test = (context) => {
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
-  if (!bookendSrc) { return WARNING("amp-story-bookend missing"); }
+  if (!bookendSrc) { return WARN("amp-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrSameOrigin(context, bookendUrl);
@@ -377,7 +380,7 @@ const testBookendCache: Test = (context) => {
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
-  if (!bookendSrc) { return WARNING("amp-story-bookend missing"); }
+  if (!bookendSrc) { return WARN("amp-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrCache(context, bookendUrl, "cdn.ampproject.org");
@@ -393,7 +396,7 @@ const testVideoSource: Test = ({$}) => {
 
 const testAmpStoryV1: Test = ({$}) => {
   const isV1 = $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length > 0;
-  return isV1 ? PASS() : WARNING("amp-story-1.0.js not used (probably 0.1?)");
+  return isV1 ? PASS() : WARN("amp-story-1.0.js not used (probably 0.1?)");
 };
 
 const testAmpStoryV1Metadata: Test = ({$}) => {
@@ -403,7 +406,7 @@ const testAmpStoryV1Metadata: Test = ({$}) => {
     .map(a => $(`amp-story[${a}]`).length > 0 ? false : a)
     .filter(Boolean) as string[];
   if (attr.length > 0) {
-    return WARNING(`<amp-story> is missing attribute(s) that will soon be mandatory: [${attr.join(", ")}]`);
+    return WARN(`<amp-story> is missing attribute(s) that will soon be mandatory: [${attr.join(", ")}]`);
   } else {
     return PASS();
   }
@@ -420,7 +423,7 @@ const testMostlyText: Test = ({$}) => {
   if (text.length > 100) {
     return PASS();
   } else {
-    return WARNING(`minimal text in the story [${text}]`);
+    return WARN(`minimal text in the story [${text}]`);
   }
 };
 

@@ -377,7 +377,7 @@ const testBookendCache: Test = (context) => {
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
-  if (!bookendSrc) { return WARNING("bookend-story-bookend missing"); }
+  if (!bookendSrc) { return WARNING("amp-story-bookend missing"); }
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrCache(context, bookendUrl, "cdn.ampproject.org");
@@ -467,7 +467,7 @@ const testThumbnails: Test = async ({$}) => {
     errors.push(`[${k}] ($v) is not landscape (4:3)`);
   }
 
-  return (errors.length > 0) ? FAIL(errors.join(",")) : PASS();
+  return (errors.length > 0) ? FAIL(errors.join(", ")) : PASS();
 };
 
 const testAll = async (context: Context): Promise<{[key: string]: Message}> => {
@@ -516,6 +516,7 @@ export {
   testVideoSource,
   testMetaCharsetFirst,
   testThumbnails,
+  fetchToCurl,
   // "private" functions get prefixed
   getBody as _getBody,
   getSchemaMetadata as _getSchemaMetadata,

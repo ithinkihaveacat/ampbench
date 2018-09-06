@@ -44,6 +44,7 @@ const hasBom = require('has-bom');
 const URL = require('url-parse');
 const mime = require('mime-types');
 const punycode = require('punycode');
+const createCacheUrl = require('amp-toolbox-cache-url');
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // convenient aliases
@@ -313,7 +314,8 @@ class HttpBodySniffer {
                 amphtml_signature:
                     S(this._body).contains('<html ⚡') || S(this._body).contains(' ⚡>') ||
                     S(this._body).contains('<html amp') || S(this._body).contains('<html AMP') ||
-                    S(this._body).contains(' amp>') || S(this._body).contains(' AMP>'),
+                    S(this._body).contains(' amp>') || S(this._body).contains(' AMP>') ||
+                    S(this._body).contains(' amp=') || S(this._body).contains(' AMP='),
                 amphtml_link:
                     S(this._body).contains('link rel="amphtml"'),
                 amphtml_link2:
@@ -1297,8 +1299,10 @@ function make_robots_txt_url(uri) {
     const parse_url = require('url').parse;
     let parsed = parse_url(uri);
 
+    // log and pass - for now: do not crash and burn if the URL is broken!!
     if ((!parsed.protocol) || (!parsed.host)) {
-        throw new Error('Cannot parse URL ' + uri);
+        // throw new Error('Cannot parse URL: ' + uri);
+        console.log('==> ERROR: Cannot parse URL: '  + uri);
     }
 
     return [
@@ -1846,33 +1850,38 @@ function parse_headers_for_if_modified_since_or_etag(http_response) {
         check_etag_header_status: CHECK_FAIL
     };
 
-    if (typeof(http_response.response.headers['if-modified-since']) === "undefined") {
-        check_ims_or_etag_header.check_ims_header_result = 'Header entry for If-Modified-Since not found';
-        check_ims_or_etag_header.check_ims_header_status = CHECK_INFO;
-    } else {
-        check_ims_or_etag_header.check_ims_header_result = 'Found header entry for If-Modified-Since' +
-            http_response.response.headers['if-modified-since'];
-        check_ims_or_etag_header.check_ims_header_status = CHECK_PASS;
-    }
+    // do not crash and burn if the response is broken!!
+    if (http_response && http_response.response && http_response.response.headers &&
+        typeof http_response.response.headers !== 'undefined') {
 
-    if (typeof(http_response.response.headers['etag']) === "undefined") {
-        check_ims_or_etag_header.check_etag_header_result = 'Header entry for ETag not found';
-        check_ims_or_etag_header.check_etag_header_status = CHECK_INFO;
-    } else {
-        check_ims_or_etag_header.check_etag_header_result = 'Found header entry for ETag' +
-            http_response.response.headers['etag'];
-        check_ims_or_etag_header.check_etag_header_status = CHECK_PASS;
-    }
+        if (typeof(http_response.response.headers['if-modified-since']) === "undefined") {
+            check_ims_or_etag_header.check_ims_header_result = 'Header entry for If-Modified-Since not found';
+            check_ims_or_etag_header.check_ims_header_status = CHECK_INFO;
+        } else {
+            check_ims_or_etag_header.check_ims_header_result = 'Found header entry for If-Modified-Since' +
+                http_response.response.headers['if-modified-since'];
+            check_ims_or_etag_header.check_ims_header_status = CHECK_PASS;
+        }
 
-    if (CHECK_PASS === check_ims_or_etag_header.check_ims_header_status ||
-        CHECK_PASS === check_ims_or_etag_header.check_etag_header_status) {
-        check_ims_or_etag_header.check_ims_or_etag_header_results =
-            `[${CHECK_PASS}] Site supports either/or both "If-Modified-Since" and "ETag" headers: these make amp serving more efficient`;
-        check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_PASS;
-    } else {
-        check_ims_or_etag_header.check_ims_or_etag_header_results =
-            `[${CHECK_WARN}] Site does not support either "If-Modified-Since" or "ETag" headers: these make amp serving more efficient`;
-        check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_WARN;
+        if (typeof(http_response.response.headers['etag']) === "undefined") {
+            check_ims_or_etag_header.check_etag_header_result = 'Header entry for ETag not found';
+            check_ims_or_etag_header.check_etag_header_status = CHECK_INFO;
+        } else {
+            check_ims_or_etag_header.check_etag_header_result = 'Found header entry for ETag' +
+                http_response.response.headers['etag'];
+            check_ims_or_etag_header.check_etag_header_status = CHECK_PASS;
+        }
+
+        if (CHECK_PASS === check_ims_or_etag_header.check_ims_header_status ||
+            CHECK_PASS === check_ims_or_etag_header.check_etag_header_status) {
+            check_ims_or_etag_header.check_ims_or_etag_header_results =
+                `[${CHECK_PASS}] Site supports either/or both "If-Modified-Since" and "ETag" headers: these make amp serving more efficient`;
+            check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_PASS;
+        } else {
+            check_ims_or_etag_header.check_ims_or_etag_header_results =
+                `[${CHECK_WARN}] Site does not support either "If-Modified-Since" or "ETag" headers: these make amp serving more efficient`;
+            check_ims_or_etag_header.check_ims_or_etag_header_status = CHECK_WARN;
+        }
     }
 
     return check_ims_or_etag_header;
@@ -1923,20 +1932,8 @@ function get_google_amp_cache_origin_json() {
  * @return {String} the transformed URL.
  */
 function make_url_to_google_amp_cache(url) {
-    const url_cdn = new URL(url); // see: https://www.npmjs.com/package/url-parse
     const cache = get_google_amp_cache_origin_json();
-    const originalHostname = url_cdn.hostname;
-    let unicodeHostname = punycode.toUnicode(originalHostname);
-    unicodeHostname = unicodeHostname.replace(/-/g, '--');
-    unicodeHostname = unicodeHostname.replace(/\./g, '-');
-
-    let pathSegment = get_resource_path(url_cdn.pathname);
-    pathSegment += url_cdn.protocol === 'https:' ? '/s/' : '/';
-
-    // url_cdn.set('hostname', punycode.toASCII(unicodeHostname) + '.' + 'cdn.ampproject.org');
-    url_cdn.set('hostname', punycode.toASCII(unicodeHostname) + '.' + cache.caches[0].updateCacheApiDomainSuffix);
-    url_cdn.set('pathname', pathSegment + originalHostname + url_cdn.pathname);
-    return url_cdn.href;
+    return createCacheUrl(cache.caches[0].updateCacheApiDomainSuffix, url);
 }
 
 // function make_url_to_google_amp_cache_OBSOLETE(url) {
@@ -2014,7 +2011,6 @@ function make_url_href_list(urls) {
         }
     }
     return __result;
-
 }
 
 function multiline_to_html(multiline_str) { // convert os.EOL to HTML line-breaks
@@ -2038,7 +2034,7 @@ function str_encode_hard_amp(str) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// utils: general
+// utils: general / sometimes also in other modules for good reason
 //
 
 function str_rtrim_char(str, char) {
@@ -2053,8 +2049,8 @@ function unwrap_js_object(obj, maxDepth, prefix){
     var result = '';
     if (!prefix) prefix='';
     for(var key in obj){
-        if (typeof obj[key] == 'object'){
-            if (maxDepth !== undefined && maxDepth <= 1){
+        if (typeof obj[key] === 'object') {
+            if (maxDepth !== undefined && maxDepth <= 1) {
                 result += (prefix + key + '=object [max depth reached]\n');
             } else {
                 result += unwrap_js_object(obj[key], (maxDepth) ? maxDepth - 1: maxDepth, prefix + key + '.');

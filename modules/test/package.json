@@ -1,0 +1,26 @@
+{
+  "name": "ampbench-test",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "author": "Michael Stillwell <mjs@beebo.org>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "prepare": "tsc -p tsconfig.json --sourceMap -d --module commonjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "debug": "^4.0.1",
+    "diff": "^3.5.0",
+    "nock": "^9.6.1",
+    "throat": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/cheerio": "^0.22.9",
+    "@types/debug": "0.0.30",
+    "@types/nock": "^9.3.0",
+    "ampbench-core": "file://../ampbench-core",
+    "tslint": "^5.11.0",
+    "typescript": "^3.0.3"
+  }
+}

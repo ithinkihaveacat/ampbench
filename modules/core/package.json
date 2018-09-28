@@ -1,0 +1,15 @@
+{
+  "name": "ampbench-core",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "author": "Michael Stillwell <mjs@beebo.org>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "prepare": "tsc -p tsconfig.json --sourceMap -d --module commonjs"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

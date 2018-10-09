@@ -1,5 +1,5 @@
 tasks:
-  - command: "npm install && npm test"
+  - command: "cd amp-story/gae && npm install && npm test"
 ports:
   - port: 8080
     protocol: "http"

@@ -7,7 +7,6 @@ $ npm install
 Run locally:
 
 ```sh
-$ tsc -b
 $ npm run start
 ```
 

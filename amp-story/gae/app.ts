@@ -86,12 +86,16 @@ app.get("/lint", async (req, res, next) => {
     return;
   }
 
+  // Hack: add some cookies to evade GDPR interstitials
+  const cookie = req.query.cookie || ["wp_gdpr=1|1"].join("; ");
+
   try {
-    log({url});
-    console.log({url});
+    log({url, cookie});
+    console.log({url, cookie});
     const r = await fetch(url, {
       headers: {
-        "user-agent": UA_GOOGLEBOT_MOBILE,
+        // "user-agent": UA_GOOGLEBOT_MOBILE,
+        "cookie": cookie
       },
     });
     if (!r.ok) {

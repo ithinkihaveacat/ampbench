@@ -24,7 +24,7 @@ import {compile, registerHelper} from "handlebars";
 import {default as fetch, Request, RequestInit, Response} from "node-fetch";
 
 import ampCors from "./amp-cors.js";
-import * as validate from "./amp-story-linter";
+import * as validate from "../linter";
 
 const log = debug("linter");
 

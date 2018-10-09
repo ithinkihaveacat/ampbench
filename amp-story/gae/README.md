@@ -1,14 +1,13 @@
 Install dependencies:
 
 ```sh
-$ npm run install-local-dependencies
 $ npm install
 ```
 
 Run locally:
 
 ```sh
-$ tsc
+$ tsc -b
 $ npm run start
 ```
 

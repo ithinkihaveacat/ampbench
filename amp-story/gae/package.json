@@ -5,7 +5,7 @@
   "scripts": {
     "install-local-dependencies": "rm -rf amp-story-linter && npm pack ../linter && tar xfz amp-story-linter-0.0.1.tgz && mv package amp-story-linter && rm amp-story-linter-0.0.1.tgz",
     "deploy": "$npm_execpath run install-local-dependencies && tsc && gcloud app deploy --project $PROJECT_ID",
-    "watch": "ls *.ts *.hbs | entr -r bash -c 'tsc && env ORIGIN=http://localhost:8080 node app.js'",
+    "watch": "ls *.ts *.hbs | entr -r bash -c 'tsc -b && env ORIGIN=http://localhost:8080 node app.js'",
     "start": "node app.js"
   },
   "engines": {

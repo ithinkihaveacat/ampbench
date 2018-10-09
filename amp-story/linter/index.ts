@@ -531,10 +531,12 @@ const testThumbnails: TestList = async (context) => {
   return (await Promise.all(res)).filter(notPass);
 };
 
-const testSingleAmpImg = (
+const testSingleAmpImg = async (
     context: Context,
     { src, expectedWidth, expectedHeight }: { src: string, expectedWidth: number, expectedHeight: number }
   ): Promise<Message> => {
+  const absoluteSrc= absoluteUrl(src, context.url);
+  const errorSrc = absoluteSrc === src ? src : `${src} => ${absoluteSrc}`;
   const success = ({height, width}: {height: number, width: number}): Promise<Message> => {
     const actualHeight = height;
     const actualWidth = width;
@@ -543,30 +545,36 @@ const testSingleAmpImg = (
     if (Math.abs(actualRatio - expectedRatio) > 0.015) {
       const actualString = `${actualWidth}/${actualHeight} = ${actualRatio}`;
       const expectedString = `${expectedWidth}/${expectedHeight} = ${expectedRatio}`;
-      return FAIL(`[${src}]: actual ratio [${actualString}] does not match specified [${expectedString}]`);
+      return FAIL(`[${errorSrc}]: actual ratio [${actualString}] does not match specified [${expectedString}]`);
     }
     const actualVolume = actualWidth * actualHeight;
     const expectedVolume = expectedWidth * expectedHeight;
     if (expectedVolume < (0.25 * actualVolume)) {
       const actualString = `${actualWidth}x${actualHeight}`;
       const expectedString = `${expectedWidth}x${expectedHeight}`;
-      return WARN(`[${src}]: actual dimensions [${actualString}] are much larger than specified [${expectedString}]`);
+      return WARN(`[${errorSrc}]: actual dimensions [${actualString}] are much larger than specified [${expectedString}]`);
     }
     if (expectedVolume > (1.5 * actualVolume)) {
       const actualString = `${actualWidth}x${actualHeight}`;
       const expectedString = `${expectedWidth}x${expectedHeight}`;
-      return WARN(`[${src}]: actual dimensions [${actualString}] are much smaller than specified [${expectedString}]`);
+      return WARN(`[${errorSrc}]: actual dimensions [${actualString}] are much smaller than specified [${expectedString}]`);
     }
     return PASS();
   };
   const fail = (e: {statusCode: number}) => {
     if (e.statusCode === undefined) {
-      return FAIL(`[${src}] ${JSON.stringify(e)}`);
+      return FAIL(`[${errorSrc}] ${JSON.stringify(e)}`);
     } else {
-      return FAIL(`[${src}] returned status ${e.statusCode}`);
+      return FAIL(`[${errorSrc}] returned status ${e.statusCode}`);
     }
   };
-  return getImageSize(context, absoluteUrl(src, context.url)!).then(success, fail);
+  try {
+    const result = await getImageSize(context, (absoluteUrl(src, context.url)!));
+    return success(result);
+  }
+  catch (e) {
+    return fail(e);
+  }
 
 };
 

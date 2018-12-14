@@ -45,7 +45,7 @@ const hasBom = require('has-bom');
 const URL = require('url-parse');
 const mime = require('mime-types');
 const punycode = require('punycode');
-const createCacheUrl = require('amp-toolbox-cache-url');
+const createCacheUrl = require('amp-toolbox-cache-url').createCacheUrl;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // convenient aliases

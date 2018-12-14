@@ -32,7 +32,7 @@ Now do the following from a terminal command-line session:
     
     $ git clone https://github.com/ampproject/ampbench.git
     $ cd ampbench
-    $ npm update
+    $ npm install
     $ nodemon
     # or:
     $ npm start

@@ -1497,6 +1497,10 @@ function check_google_amp_cache(url, callback) {
     });
 }
 
+/* Note that this check may produce different results on different machines; in
+some cases google.com sends an ~10k header, which causes node to blow up with an
+HPE_HEADER_OVERFLOW error, since the default max appears to be ~8k. See
+https://stackoverflow.com/a/35330480/11543. */
 function check_google_amp_viewer(url, callback) {
 
     const url_viewer = make_url_to_google_amp_viewer(url);

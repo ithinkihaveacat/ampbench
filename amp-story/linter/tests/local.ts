@@ -1,15 +1,14 @@
 const FIXTURES = __dirname + "/local";
 
-import {basename} from "path";
+import { basename } from "path";
 
 import * as cheerio from "cheerio";
-import {diffJson as diff} from "diff";
+import { diffJson as diff } from "diff";
 import * as fs from "fs";
 
-import * as linter from "../index";
+import * as linter from "../src";
 
 async function run(prefix: string) {
-
   const match = prefix.match(/\/(.*)\-/);
 
   if (!match) {
@@ -28,7 +27,9 @@ async function run(prefix: string) {
     try {
       return cheerio.load(fs.readFileSync(`${prefix}/source.html`).toString());
     } catch (e) {
-      console.error(`error: can't read/parse ${prefix}/source.html, skipping ${prefix}`);
+      console.error(
+        `error: can't read/parse ${prefix}/source.html, skipping ${prefix}`
+      );
       return null;
     }
   })();
@@ -37,12 +38,16 @@ async function run(prefix: string) {
     try {
       return JSON.parse(fs.readFileSync(`${prefix}/expected.json`).toString());
     } catch (e) {
-      console.error(`error: can't read/parse ${prefix}/expected.json, skipping ${prefix}`);
+      console.error(
+        `error: can't read/parse ${prefix}/expected.json, skipping ${prefix}`
+      );
       return null;
     }
   })();
 
-  if (!$ || !expected) { return; }
+  if (!$ || !expected) {
+    return;
+  }
 
   const url = expected._url || "https://example.com/";
 
@@ -59,22 +64,22 @@ async function run(prefix: string) {
 
 let COUNT = 0;
 
-if (process.argv.length === 3) {
+console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
 
+if (process.argv.length === 3) {
   const prefix = process.argv[2];
 
   run(prefix).then(res => {
-    if (!res) { return; }
+    if (!res) {
+      return;
+    }
     res.forEach(part => {
-      const color = part.added ? "green" :
-        part.removed ? "red" : "grey";
+      const color = part.added ? "green" : part.removed ? "red" : "grey";
       process.stdout.write((part.value as any)[color]);
     });
     process.stdout.write("\n");
   });
-
 } else {
-
   fs.readdirSync(FIXTURES).forEach(async d => {
     const count = ++COUNT;
     const prefix = `${FIXTURES}/${d}`;
@@ -83,11 +88,12 @@ if (process.argv.length === 3) {
       console.log(`ok ${count} - ${basename(prefix)}`);
     } else {
       console.log(
-        `not ok ${count} - ${prefix} # more info: ${basename(process.argv[0])} ${basename(process.argv[1])} ${prefix}`,
+        `not ok ${count} - ${prefix} # more info: ${basename(
+          process.argv[0]
+        )} ${basename(process.argv[1])} ${prefix}`
       );
     }
   });
 
   console.log(`1..${COUNT}`);
-
 }

@@ -5,7 +5,7 @@
   "repository": "https://github.com/ampproject/ampbench",
   "private": true,
   "scripts": {
-    "preinstall": "cd amp-story/linter && npm install",
+    "preinstall": "pushd amp-toolbox-linter && npm install && node_modules/.bin/pack build && popd && npm install amp-toolbox-linter/pkg",
     "start": "node ampbench_main.js",
     "monitor": "nodemon --watch . --watch views/index.hbs --watch views/results.hbs --ignore 'validator/*.*'",
     "deploy": "gcloud app deploy app.yaml",
@@ -17,6 +17,7 @@
   "license": "Apache Version 2.0",
   "dependencies": {
     "amp-toolbox-cache-url": "^0.1.0",
+    "amp-toolbox-linter": "file:amp-toolbox-linter/pkg",
     "amphtml-validator": "^1.0.23",
     "body-parser": "^1.18.3",
     "cheerio": "^0.20.0",
@@ -48,6 +49,6 @@
     "wget-improved": "^1.3.0"
   },
   "engines": {
-    "node": ">=0.12.7"
+    "node": ">=8"
   }
 }

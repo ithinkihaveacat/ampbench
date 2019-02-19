@@ -20,7 +20,7 @@
 
 const benchlib = require('./ampbench_lib.js');
 const sdlib = require('./ampbench_lib_sd.js');
-const linter = require('./amp-story/linter');
+const linter = require('amp-toolbox-linter');
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // app version
@@ -420,7 +420,7 @@ function validate(route, user_agent, user_agent_name, req, res, on_validate_call
                                         $: http_response.$
                                     };
 
-                                    const testAmpStory = linter.testAmpStory(testContext);
+                                    const testAmpStory = linter.isAmpStory(testContext);
                                     const testThumbnails = linter.testThumbnails(testContext);
 
                                     __ret = {
@@ -489,7 +489,7 @@ function validate(route, user_agent, user_agent_name, req, res, on_validate_call
                                         check_robots_txt_return: check_robots_txt_return,
                                         check_google_amp_cache_status_css: check_google_amp_cache_status_css,
                                         check_google_amp_cache_return: check_google_amp_cache_return,
-                                        variant_is_amp_story: testAmpStory.then((res) => res.status !== 'FAIL'),
+                                        variant_is_amp_story: testAmpStory,
                                         amp_story_thumbnails: testThumbnails,
                                         amp_story_thumbnails_status: testThumbnails.then((res) => get_check_status_css(res.status)),
                                         // check_redirects_return: check_redirects_return,

@@ -1,14 +1,15 @@
+import { basename } from "path";
 import { parse, format } from "url";
 import { readFileSync, existsSync } from "fs";
 import { resolve, URL } from "url";
 import { stringify } from "querystring";
+
 import { createCacheUrl } from "amp-toolbox-cache-url";
 import throat from "throat";
-import cheerio from "cheerio";
-
 import { default as fetch, Request, RequestInit, Response } from "node-fetch";
 import probe from "probe-image-size";
-import { basename } from "path";
+import cheerio from "cheerio";
+
 import { validate } from "./validate";
 import { caches } from "./caches";
 
@@ -732,30 +733,7 @@ export const testCorsCache: TestList = async context => {
   )).filter(notPass);
 };
 
-export const testAll = async (
-  context: Context
-): Promise<{ [key: string]: Message }> => {
-  const res = await Promise.all(
-    Object.keys(exports as { [k: string]: Test })
-      .filter(k => k.startsWith("test") && k !== "testAll")
-      .map(k => exports[k](context).then((v: any) => [k, v]))
-  );
-  return res.reduce((a: { [key: string]: Message }, kv: [string, Message]) => {
-    a[kv[0].substring("test".length).toLowerCase()] = kv[1];
-    return a;
-  }, {});
-};
-
-export {
-  // alias "private" functions with prefix, for testing
-  getBody as _getBody,
-  getSchemaMetadata as _getSchemaMetadata,
-  getInlineMetadata as _getInlineMetadata,
-  getImageSize as _getImageSize,
-  getCorsEndpoints as _getCorsEndpoints
-};
-
-export function run(argv: string[]) {
+export function cli(argv: string[]) {
   if (argv.length <= 2) {
     console.error(
       `usage: ${basename(argv[0])} ${basename(argv[1])} URL|copy_as_cURL`
@@ -809,3 +787,26 @@ export function run(argv: string[]) {
       .catch(e => console.error(`error: ${e}`))
   );
 }
+
+export const testAll = async (
+  context: Context
+): Promise<{ [key: string]: Message }> => {
+  const res = await Promise.all(
+    Object.keys(exports as { [k: string]: Test })
+      .filter(k => k.startsWith("test") && k !== "testAll")
+      .map(k => exports[k](context).then((v: any) => [k, v]))
+  );
+  return res.reduce((a: { [key: string]: Message }, kv: [string, Message]) => {
+    a[kv[0].substring("test".length).toLowerCase()] = kv[1];
+    return a;
+  }, {});
+};
+
+export {
+  // alias "private" functions with prefix, for testing
+  getBody as _getBody,
+  getSchemaMetadata as _getSchemaMetadata,
+  getInlineMetadata as _getInlineMetadata,
+  getImageSize as _getImageSize,
+  getCorsEndpoints as _getCorsEndpoints
+};

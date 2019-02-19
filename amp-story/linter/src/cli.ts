@@ -1,6 +1,6 @@
-import { run } from ".";
+import { cli } from ".";
 
-run(process.argv).catch(function(error: any) {
+cli(process.argv).catch(function(error: any) {
   console.error(error.stack || error.message || error);
   process.exitCode = 1;
 });

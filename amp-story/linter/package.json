@@ -20,7 +20,8 @@
   },
   "scripts": {
     "update-data": "cd tests && curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js",
-    "test": "cd tests && tsc --module commonjs && for t in *.js ; do node $t | tap-spec ; done && echo yes"
+    "test": "cd tests && tsc --module commonjs && for t in *.js ; do node $t | tap-spec ; done && echo yes",
+    "watch": "ls tsconfig.json tslint.json src/*.ts | entr -c -s 'tsc ; date'"
   },
   "devDependencies": {
     "@pika/pack": "^0.3.2",

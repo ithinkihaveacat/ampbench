@@ -5,7 +5,7 @@
   "repository": "https://github.com/ampproject/ampbench",
   "private": true,
   "scripts": {
-    "preinstall": "pushd amp-toolbox-linter && npm install && node_modules/.bin/pack build && popd && npm install amp-toolbox-linter/pkg",
+    "preinstall": "cd amp-toolbox-linter && npm install && npm test && node_modules/.bin/pack build && cd .. && npm install amp-toolbox-linter/pkg",
     "start": "node ampbench_main.js",
     "monitor": "nodemon --watch . --watch views/index.hbs --watch views/results.hbs --ignore 'validator/*.*'",
     "deploy": "gcloud app deploy app.yaml",

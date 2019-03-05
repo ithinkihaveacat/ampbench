@@ -2,7 +2,7 @@
   "name": "amp-toolbox-linter",
   "version": "0.0.1",
   "description": "A linter for AMP documents",
-  "repository": "https://github.com/ampproject/ampbench/amp-story/linter",
+  "repository": "https://github.com/ampproject/ampbench/amp-toolbox-linter",
   "license": "Apache-2.0",
   "author": "Michael Stillwell <mjs@beebo.org>",
   "dependencies": {
@@ -20,7 +20,7 @@
   },
   "scripts": {
     "update-data": "cd tests && curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js",
-    "test": "cd tests && tsc --module commonjs && for t in *.js ; do node $t | tap-spec ; done && echo yes",
+    "test": "cd tests && tsc --module commonjs && for t in *.js ; do node $t | tap-spec ; done",
     "watch": "ls tsconfig.json tslint.json src/*.ts | entr -c -s 'tsc ; date'"
   },
   "devDependencies": {

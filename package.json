@@ -11,7 +11,7 @@
     "deploy": "gcloud app deploy app.yaml",
     "lint": "eslint --quiet amp*.js",
     "mocha": "mocha test/*.test.js -t 30000",
-    "test": "npm run lint && cd amp-story/linter && npm test"
+    "test": "npm run lint"
   },
   "author": "The AMP HTML Authors",
   "license": "Apache Version 2.0",

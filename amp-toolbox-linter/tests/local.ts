@@ -64,8 +64,6 @@ async function run(prefix: string) {
 
 let COUNT = 0;
 
-console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
-
 if (process.argv.length === 3) {
   const prefix = process.argv[2];
 

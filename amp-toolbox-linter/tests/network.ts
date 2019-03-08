@@ -521,5 +521,4 @@ withFixture("cors4", () =>
   )
 );
 
-console.log("# dummy"); // https://github.com/scottcorgan/tap-spec/issues/63 (sigh)
 console.log(`1..30`);

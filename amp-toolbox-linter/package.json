@@ -20,7 +20,7 @@
   },
   "scripts": {
     "update-data": "cd tests && curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js",
-    "test": "cd tests && tsc --module commonjs && for t in *.js ; do node $t | tap-spec ; done",
+    "test": "cd tests && tsc --module commonjs && for t in {local,network}.js ; do ( node $t | tap-parser -t ) || exit 1 ; done ; exit 0",
     "watch": "ls tsconfig.json tslint.json src/*.ts | entr -c -s 'tsc ; date'"
   },
   "devDependencies": {
@@ -36,7 +36,7 @@
     "@types/node-fetch": "^2.1.6",
     "diff": "^4.0.1",
     "nock": "^10.0.6",
-    "tap-spec": "^5.0.0",
+    "tap-parser": "^9.0.0",
     "typescript": "^3.3.3333"
   },
   "@pika/pack": {

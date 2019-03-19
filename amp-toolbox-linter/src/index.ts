@@ -710,6 +710,20 @@ export const testAmpImg: TestList = async context => {
     .get() as any) as Array<Promise<Message>>)).filter(notPass);
 };
 
+export const testAmpImgShouldBeAmpPixel: TestList = async context => {
+  const $ = context.$;
+  return await Promise.all($("amp-img[width=1][height=1]")
+    .map((_, e) => {
+      const src = $(e).attr("src");
+      return WARN(
+        `[${$(
+          e
+        ).toString()}] has width=1, height=1; <amp-pixel> may be a better choice`
+      );
+    })
+    .get() as Array<Promise<Message>>);
+};
+
 export const testCorsSameOrigin: TestList = async context => {
   const corsEndpoints = getCorsEndpoints(context.$);
   return (await Promise.all(

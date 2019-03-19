@@ -9,10 +9,10 @@ import * as fs from "fs";
 import * as linter from "../src";
 
 async function run(prefix: string) {
-  const match = prefix.match(/\/(.*)\-/);
+  const match = prefix.match(/\/(.*)\-\d+/);
 
   if (!match) {
-    console.warn(`skipping ${prefix}`);
+    console.warn(`skipping ${prefix} (can't extract test name)`);
     return;
   }
 

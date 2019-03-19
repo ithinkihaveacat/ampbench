@@ -1,0 +1,6 @@
+[
+  {
+    "message": "[<amp-img src=\"/img/amp_by_example_logo.svg\" width=\"1\" height=\"1\" noloading></amp-img>] has width=1, height=1; <amp-pixel> may be a better choice",
+    "status": "WARN"
+  }
+]

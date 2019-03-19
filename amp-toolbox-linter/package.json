@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "author": "Michael Stillwell <mjs@beebo.org>",
   "dependencies": {
-    "amp-toolbox-cache-list": "^0.1.4",
+    "amp-toolbox-cache-list": "^0.1.5",
     "amp-toolbox-cache-url": "^1.0.6",
     "amphtml-validator": "^1.0.23",
     "cheerio": "^1.0.0-rc.2",
@@ -24,19 +24,19 @@
     "watch": "ls tsconfig.json tslint.json src/*.ts tests/*.ts | entr -c -s 'tsc ; date'"
   },
   "devDependencies": {
-    "@pika/pack": "^0.3.4",
-    "@pika/plugin-build-node": "^0.3.13",
-    "@pika/plugin-build-types": "^0.3.13",
-    "@pika/plugin-simple-bin": "^0.3.13",
-    "@pika/plugin-standard-pkg": "^0.3.13",
-    "@types/cheerio": "^0.22.10",
+    "@pika/pack": "^0.3.5",
+    "@pika/plugin-build-node": "^0.3.14",
+    "@pika/plugin-build-types": "^0.3.14",
+    "@pika/plugin-simple-bin": "^0.3.14",
+    "@pika/plugin-standard-pkg": "^0.3.14",
+    "@types/cheerio": "^0.22.11",
     "@types/debug": "4.1.2",
     "@types/diff": "^4.0.1",
     "@types/nock": "^9.3.1",
     "@types/node-fetch": "^2.1.6",
     "diff": "^4.0.1",
     "nock": "^10.0.6",
-    "tap-parser": "^9.0.0",
+    "tap-parser": "^9.3.1",
     "typescript": "^3.3.3333"
   },
   "@pika/pack": {

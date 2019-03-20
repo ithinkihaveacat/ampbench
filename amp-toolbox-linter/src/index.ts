@@ -20,6 +20,13 @@ const UA_GOOGLEBOT_MOBILE = [
   "(compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 ].join(" ");
 
+export enum AmpType {
+  Amp,
+  AmpStory,
+  Amp4Ads,
+  Amp4Email
+}
+
 export interface ActualExpected {
   readonly actual: string | undefined;
   readonly expected: string;
@@ -221,6 +228,14 @@ const getCorsEndpoints = ($: CheerioStatic) => {
     )
     .filter(s => !!s);
 };
+
+export function getAmpType($: CheerioStatic): AmpType {
+  if ($("body amp-story[standalone]").length === 1) {
+    return AmpType.AmpStory;
+  }
+  // TODO Add tests for the other types
+  return AmpType.Amp;
+}
 
 export function isAmpStory({ $ }: Context) {
   return $("body amp-story[standalone]").length === 1;
@@ -440,7 +455,7 @@ export const testBookendSameOrigin: Test = context => {
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
   if (!bookendSrc) {
-    return WARN("amp-story-bookend missing");
+    return WARN("no bookend specified");
   }
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
@@ -714,11 +729,9 @@ export const testAmpImgShouldBeAmpPixel: TestList = async context => {
   const $ = context.$;
   return await Promise.all($("amp-img[width=1][height=1]")
     .map((_, e) => {
-      const src = $(e).attr("src");
+      const s = $(e).toString();
       return WARN(
-        `[${$(
-          e
-        ).toString()}] has width=1, height=1; <amp-pixel> may be a better choice`
+        `[${s}] has width=1, height=1; <amp-pixel> may be a better choice`
       );
     })
     .get() as Array<Promise<Message>>);

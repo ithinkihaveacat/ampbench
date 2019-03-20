@@ -18,7 +18,15 @@ Stories.
 
 ## Usage
 
-Command-line:
+Command-line (local build):
+
+```sh
+$ npm install
+$ npm run build # generates src/cli.js from src/cli.ts
+$ node src/cli.js https://www.ampproject.org/
+```
+
+Command-line (from npm):
 
 ```sh
 $ npx amp-toolbox-linter https://www.ampproject.org/

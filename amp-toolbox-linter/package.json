@@ -20,7 +20,7 @@
   },
   "scripts": {
     "update-data": "cd tests && curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js",
-    "test": "cd tests && for t in {local,network}.js ; do ( node $t | tap-parser -t ) || exit 1 ; done ; exit 0",
+    "test": "cd tests && for t in {local,network}.js ; do test -e $t || tsc ; ( node $t | tap-parser -t ) || exit 1 ; done ; exit 0",
     "watch": "ls tsconfig.json tslint.json src/*.ts tests/*.ts | entr -c -s 'tsc ; date'"
   },
   "devDependencies": {

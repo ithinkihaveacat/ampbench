@@ -3,3 +3,6 @@ node_modules
 *.js
 *.js.map
 tests/*.d.ts
+!stryker.conf.js
+.stryker-tmp
+reports

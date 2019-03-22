@@ -18,8 +18,8 @@ import {
   dimensions
 } from "./url";
 import {
-  metadataSchema,
-  metadataInline,
+  schemaMetadata,
+  inlineMetadata,
   corsEndpoints,
   ampType
 } from "./helper";
@@ -117,7 +117,7 @@ export async function LinkRelCanonicalIsOk(context: Context) {
 }
 
 export function SchemaMetadataIsNews({ $ }: Context) {
-  const metadata = metadataSchema($);
+  const metadata = schemaMetadata($);
   const type = metadata["@type"];
   if (
     type !== "Article" &&
@@ -136,7 +136,7 @@ export function SchemaMetadataIsRecent({ $ }: Context) {
   const inLastMonth = (time: number) => {
     return time > Date.now() - 30 * 24 * 60 * 60 * 1000 && time < Date.now();
   };
-  const metadata = metadataSchema($);
+  const metadata = schemaMetadata($);
   const datePublished = metadata.datePublished;
   const dateModified = metadata.dateModified;
   if (!datePublished || !dateModified) {
@@ -397,14 +397,14 @@ export async function StoryMetadataThumbnailsAreOk(context: Context) {
     );
     return height > 0.74 * width && height < 0.76 * width;
   }
-  const inlineMetadata = metadataInline($);
+  const metadata = inlineMetadata($);
 
   const res: Array<Promise<Message>> = [];
 
   res.push(
     (async () => {
       const k = "publisher-logo-src";
-      const v = inlineMetadata[k];
+      const v = metadata[k];
       try {
         const r = await isSquare(v);
         return r
@@ -421,7 +421,7 @@ export async function StoryMetadataThumbnailsAreOk(context: Context) {
   res.push(
     (async () => {
       const k = "poster-portrait-src";
-      const v = inlineMetadata[k];
+      const v = metadata[k];
       try {
         const r = await isPortrait(v);
         return r
@@ -437,7 +437,7 @@ export async function StoryMetadataThumbnailsAreOk(context: Context) {
 
   (() => {
     const k = "poster-square-src";
-    const v = inlineMetadata[k];
+    const v = metadata[k];
     if (v) {
       res.push(
         isSquare(v).then(
@@ -453,7 +453,7 @@ export async function StoryMetadataThumbnailsAreOk(context: Context) {
 
   (() => {
     const k = "poster-landscape-src";
-    const v = inlineMetadata[k];
+    const v = metadata[k];
     if (v) {
       res.push(
         isLandscape(v).then(
@@ -679,16 +679,4 @@ export const lint = async (
   );
 };
 
-export const testAll = async (
-  context: Context
-): Promise<{ [key: string]: Message }> => {
-  const res = await Promise.all(
-    Object.keys(exports as { [k: string]: Test })
-      .filter(k => k.startsWith("test") && k !== "testAll")
-      .map(k => exports[k](context).then((v: any) => [k, v]))
-  );
-  return res.reduce((a: { [key: string]: Message }, kv: [string, Message]) => {
-    a[kv[0].substring("test".length).toLowerCase()] = kv[1];
-    return a;
-  }, {});
-};
+export { ampType as getAmpType };

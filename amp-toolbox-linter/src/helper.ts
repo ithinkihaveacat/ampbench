@@ -9,14 +9,14 @@ interface InlineMetadata {
   "poster-landscape-src"?: string;
 }
 
-export function metadataSchema($: CheerioStatic) {
+export function schemaMetadata($: CheerioStatic) {
   const metadata = JSON.parse($(
     'script[type="application/ld+json"]'
   ).html() as string);
   return metadata ? metadata : {};
 }
 
-export function metadataInline($: CheerioStatic) {
+export function inlineMetadata($: CheerioStatic) {
   const e = $("amp-story");
   const metadata: InlineMetadata = {
     "poster-landscape-src": e.attr("poster-landscape-src"), // optional

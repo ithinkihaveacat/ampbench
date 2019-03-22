@@ -1,13 +1,13 @@
 import { basename } from "path";
 
 import { withFixture, assertEqual, runCheerioFn } from "./lib";
-import { metadataSchema, metadataInline, corsEndpoints } from "../src/helper";
+import { schemaMetadata, inlineMetadata, corsEndpoints } from "../src/helper";
 
 withFixture("getschemametadata", () =>
   assertEqual(
-    metadataSchema.name,
+    schemaMetadata.name,
     runCheerioFn(
-      metadataSchema,
+      schemaMetadata,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     {
@@ -38,9 +38,9 @@ withFixture("getschemametadata", () =>
 
 withFixture("getinlinemetadata", () =>
   assertEqual(
-    metadataInline.name,
+    inlineMetadata.name,
     runCheerioFn(
-      metadataInline,
+      inlineMetadata,
       "https://ithinkihaveacat.github.io/hello-world-amp-story/"
     ),
     {

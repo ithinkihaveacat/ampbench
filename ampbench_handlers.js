@@ -412,7 +412,7 @@ function validate(route, user_agent, user_agent_name, req, res, on_validate_call
                                     const sniffer_contains_byte_order_mark_css = sniffer.containsByteOrderMark
                                         ? CHECK_WARN_CSS : CHECK_PASS_CSS;
 
-                                    const testContext = {
+                                    const linterContext = {
                                         headers: {
                                             'user-agent': user_agent
                                         },
@@ -420,8 +420,8 @@ function validate(route, user_agent, user_agent_name, req, res, on_validate_call
                                         $: http_response.$
                                     };
 
-                                    const testAmpStory = linter.isAmpStory(testContext);
-                                    const testThumbnails = linter.testThumbnails(testContext);
+                                    const isAmpStory = linter.getAmpType(linterContext.$) == linter.AmpType.AmpStory;
+                                    const thumbnailCheck = linter.StoryMetadataThumbnailsAreOk(linterContext);
 
                                     __ret = {
                                         user_agent: benchlib.get_global_user_agent(),
@@ -489,9 +489,9 @@ function validate(route, user_agent, user_agent_name, req, res, on_validate_call
                                         check_robots_txt_return: check_robots_txt_return,
                                         check_google_amp_cache_status_css: check_google_amp_cache_status_css,
                                         check_google_amp_cache_return: check_google_amp_cache_return,
-                                        variant_is_amp_story: testAmpStory,
-                                        amp_story_thumbnails: testThumbnails,
-                                        amp_story_thumbnails_status: testThumbnails.then((res) => get_check_status_css(res.status)),
+                                        variant_is_amp_story: isAmpStory,
+                                        amp_story_thumbnails_message: thumbnailCheck.then((res) => res.map(r => r.message).join(", ")),
+                                        amp_story_thumbnails_status: thumbnailCheck.then((res) => get_check_status_css(res.length == 0 ? CHECK_PASS : CHECK_FAIL)),
                                         // check_redirects_return: check_redirects_return,
                                         http_redirect_status: get_check_status_css(http_redirect_status),
                                         http_redirect_route: http_redirect_route,

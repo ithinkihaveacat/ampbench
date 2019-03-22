@@ -59,7 +59,7 @@
       [
         "@pika/plugin-simple-bin",
         {
-          "bin": "lint"
+          "bin": "amplint"
         }
       ]
     ]

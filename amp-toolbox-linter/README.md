@@ -11,10 +11,7 @@ incorrectly sized, missing CORS headers, or invalid metadata.
 
 ## Status
 
-This code is alpha quality. It works best on [AMP
-Stories](https://www.ampproject.org/docs/reference/components/amp-story), and
-currently reports unnecessary warnings for valid AMP documents that are not
-Stories.
+This code is alpha quality.
 
 ## Usage
 
@@ -48,3 +45,47 @@ const context = {
 
 linter.testMetaCharsetFirst(context).then(console.log);
 ```
+
+## Development
+
+### Commands
+
+#### `npm install`
+
+Installs dependencies. Run this first.
+
+#### `npm run build`
+
+Builds `*.js` from `*.ts`.
+
+#### `npm test`
+
+Runs the tests in the
+
+#### `npm watch`
+
+Automatically rebuild `*.js` whenever `*.ts` changes.
+
+#### `npm run package`
+
+Generates npm-installable version of the package in `pkg/`. From another
+directory install via `npm install amp-toolbox-linter/pkg`.
+
+#### `npm run publish`
+
+Uses @pika's `pack publish` to publish to npm.
+
+### Suggested Workflow
+
+1. Create stub function in `index.ts`, that always "fails". e.g. it always
+   returns `qqqqqq`. It should implement either the `Test` or `TestList`
+   interface.
+1. Write tests in `tests/network.ts`. (If HTTP requests are required; if not
+   then create a directory in `tests/local/MyNewTest-1` that contains a
+   `source.html` (AMP HTML source) and `expected.json` (expected JSON output),
+   and `tests/local.js` will automatically execute your "test".)
+1. Run the test using `npm test`. If the fixtures can't be found, they will be
+   generated automatically (via real network requests). Hopefully your test will
+   fail.
+1. Fix the implementation, and re-run the test.
+1. Use `npm run publish` to publish the new version to npm.

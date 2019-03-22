@@ -43,7 +43,7 @@ const context = {
   url: "https://www.ampproject.org/"
 };
 
-linter.testMetaCharsetFirst(context).then(console.log);
+linter.MetaCharsetIsFirst(context).then(console.log);
 ```
 
 ## Development

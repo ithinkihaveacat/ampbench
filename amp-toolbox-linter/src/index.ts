@@ -1,24 +1,28 @@
 import { basename } from "path";
 import { parse, format } from "url";
-import { readFileSync, existsSync } from "fs";
-import { resolve, URL } from "url";
+import { readFileSync } from "fs";
 import { stringify } from "querystring";
 
 import { createCacheUrl } from "amp-toolbox-cache-url";
-import throat from "throat";
 import { default as fetch, Request, RequestInit, Response } from "node-fetch";
-import probe from "probe-image-size";
 import cheerio from "cheerio";
 
 import { validate } from "./validate";
 import { caches } from "./caches";
-
-const CONCURRENCY = 8;
-const UA_GOOGLEBOT_MOBILE = [
-  "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36",
-  "(KHTML, like Gecko) Chrome/41.0.2272.96 Mobile Safari/537.36",
-  "(compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
-].join(" ");
+import { isStatusOk, isJson, isAccessControlHeaders } from "./filter";
+import {
+  absoluteUrl,
+  redirectUrl,
+  contentLength,
+  fetchToCurl,
+  dimensions
+} from "./url";
+import {
+  metadataSchema,
+  metadataInline,
+  corsEndpoints,
+  ampType
+} from "./helper";
 
 export enum AmpType {
   Amp,
@@ -53,15 +57,6 @@ export interface TestList {
   (context: Context): Promise<Message[]>;
 }
 
-interface InlineMetadata {
-  title: string;
-  publisher: string;
-  "publisher-logo-src": string;
-  "poster-portrait-src": string;
-  "poster-square-src"?: string;
-  "poster-landscape-src"?: string;
-}
-
 const S_PASS = "PASS";
 const S_FAIL = "FAIL";
 const S_WARN = "WARN";
@@ -86,167 +81,12 @@ const notPass = (m: Message): boolean => {
   return m.status !== S_PASS;
 };
 
-function isStatusOk(res: Response) {
-  if (res.ok) {
-    return res;
-  } else {
-    throw new Error(`expected status code: [2xx], actual [${res.status}]`);
-  }
-}
-
-function isStatusNotOk(res: Response) {
-  if (!res.ok) {
-    return res;
-  } else {
-    throw new Error(
-      `expected status code: [1xx, 3xx, 4xx, 5xx], actual [${res.status}]`
-    );
-  }
-}
-
-async function isJson(res: Response): Promise<Response> {
-  const contentType = (() => {
-    if (!res.headers) {
-      return "";
-    }
-    const s = res.headers.get("content-type") || "";
-    return s.toLowerCase().split(";")[0];
-  })();
-  if (contentType !== "application/json") {
-    throw new Error(
-      `expected content-type: [application/json]; actual: [${contentType}]`
-    );
-  }
-  const text = await res.text();
-  try {
-    JSON.parse(text);
-  } catch (e) {
-    throw new Error(`couldn't parse body as JSON: ${text.substring(0, 100)}`);
-  }
-  return res;
-}
-
-const getRedirectedUrl = throat(
-  CONCURRENCY,
-  async (context: Context, s: string | Request) => {
-    const res = await fetch(s, { headers: context.headers });
-    return res.url;
-  }
-);
-
-const getBody = throat(
-  CONCURRENCY,
-  (context: Context, s: string | Request, init = {}) => {
-    if (!("headers" in init)) {
-      init.headers = {};
-    }
-    // Might be able to use type guards to avoid the cast somehow...
-    (init.headers as { [key: string]: string })[
-      "user-agent"
-    ] = UA_GOOGLEBOT_MOBILE;
-    return fetch(s, init);
-  }
-);
-
-function getImageSize(
-  context: Context,
-  url: string
-): Promise<{ width: number; height: number; mime: string; [k: string]: any }> {
-  // probe-image-size can't handle encoded streams:
-  // https://github.com/nodeca/probe-image-size/issues/28
-  const headers = Object.assign({}, context.headers);
-  delete headers["accept-encoding"];
-  return probe(absoluteUrl(url, context.url), { headers });
-}
-
-const getContentLength = throat(
-  CONCURRENCY,
-  async (context: Context, s: string | Request) => {
-    const options = Object.assign(
-      {},
-      { method: "HEAD" },
-      { headers: context.headers }
-    );
-    const res = await fetch(s, options);
-    if (!res.ok) {
-      return Promise.reject(res);
-    }
-    const contentLength = res.headers.get("content-length");
-    return contentLength ? contentLength : 0;
-  }
-);
-
-const absoluteUrl = (s: string | undefined, base: string | undefined) => {
-  if (typeof s !== "string" || typeof base !== "string") {
-    return undefined;
-  } else {
-    return resolve(base, s);
-  }
-};
-
-function fetchToCurl(
-  url: string,
-  init: { headers?: { [k: string]: string } } = { headers: {} }
-) {
-  const headers = init.headers || {};
-
-  const h = Object.keys(headers)
-    .map(k => `-H '${k}: ${headers[k]}'`)
-    .join(" ");
-
-  return `curl -i ${h} '${url}'`;
-}
-
-const getSchemaMetadata = ($: CheerioStatic) => {
-  const metadata = JSON.parse($(
-    'script[type="application/ld+json"]'
-  ).html() as string);
-  return metadata ? metadata : {};
-};
-
-function getInlineMetadata($: CheerioStatic) {
-  const e = $("amp-story");
-  const metadata: InlineMetadata = {
-    "poster-landscape-src": e.attr("poster-landscape-src"), // optional
-    "poster-portrait-src": e.attr("poster-portrait-src"),
-    "poster-square-src": e.attr("poster-square-src"), // optional
-    publisher: e.attr("publisher"),
-    "publisher-logo-src": e.attr("publisher-logo-src"),
-    title: e.attr("title")
-  };
-  return metadata;
-}
-
-const getCorsEndpoints = ($: CheerioStatic) => {
-  return ([] as string[])
-    .concat(
-      $("amp-list[src]")
-        .map((_, e) => $(e).attr("src"))
-        .get(),
-      $("amp-story amp-story-bookend").attr("src"),
-      $("amp-story").attr("bookend-config-src")
-    )
-    .filter(s => !!s);
-};
-
-export function getAmpType($: CheerioStatic): AmpType {
-  if ($("body amp-story[standalone]").length === 1) {
-    return AmpType.AmpStory;
-  }
-  // TODO Add tests for the other types
-  return AmpType.Amp;
-}
-
-export function isAmpStory({ $ }: Context) {
-  return $("body amp-story[standalone]").length === 1;
-}
-
-export const testValidity: Test = async ({ $ }) => {
+export async function IsValid({ $ }: Context) {
   const res = await validate($.html());
   return res.status === "PASS" ? PASS() : res;
-};
+}
 
-export const testCanonical: Test = async context => {
+export async function LinkRelCanonicalIsOk(context: Context) {
   const { $, url } = context;
   const canonical = $('link[rel="canonical"]').attr("href");
   if (!canonical) {
@@ -262,7 +102,7 @@ export const testCanonical: Test = async context => {
   }
   // does url redirect?
   try {
-    const s2 = await getRedirectedUrl(context, url);
+    const s2 = await redirectUrl(context, url);
     if (s2 === url) {
       return PASS();
     } else {
@@ -274,10 +114,10 @@ export const testCanonical: Test = async context => {
   } catch (e) {
     return FAIL(`couldn't retrieve canonical ${url}`);
   }
-};
+}
 
-export const testSchemaMetadataType: Test = ({ $ }) => {
-  const metadata = getSchemaMetadata($);
+export function SchemaMetadataIsNews({ $ }: Context) {
+  const metadata = metadataSchema($);
   const type = metadata["@type"];
   if (
     type !== "Article" &&
@@ -290,13 +130,13 @@ export const testSchemaMetadataType: Test = ({ $ }) => {
   } else {
     return PASS();
   }
-};
+}
 
-export const testSchemaMetadataRecent: Test = ({ $ }) => {
+export function SchemaMetadataIsRecent({ $ }: Context) {
   const inLastMonth = (time: number) => {
     return time > Date.now() - 30 * 24 * 60 * 60 * 1000 && time < Date.now();
   };
-  const metadata = getSchemaMetadata($);
+  const metadata = metadataSchema($);
   const datePublished = metadata.datePublished;
   const dateModified = metadata.dateModified;
   if (!datePublished || !dateModified) {
@@ -321,16 +161,16 @@ export const testSchemaMetadataRecent: Test = ({ $ }) => {
       `datePublished [${datePublished}] or dateModified [${dateModified}] is old or in the future`
     );
   }
-};
+}
 
-export const testVideoSize: Test = async context => {
+export async function AmpVideoIsSmall(context: Context) {
   const { $ } = context;
   const args = await Promise.all(($(
     `amp-video source[type="video/mp4"][src], amp-video[src]`
   )
     .map(async (i, e) => {
       const url = absoluteUrl($(e).attr("src"), context.url);
-      const length = await getContentLength(context, url!);
+      const length = await contentLength(context, url!);
       return { url, length };
     })
     .get() as any) as Array<
@@ -354,7 +194,7 @@ export const testVideoSize: Test = async context => {
   } else {
     return PASS();
   }
-};
+}
 
 /**
  * Adds `__amp_source_origin` query parameter to URL.
@@ -367,38 +207,6 @@ function addSourceOrigin(url: string, sourceOrigin: string) {
   obj.query.__amp_source_origin = sourceOrigin;
   obj.search = stringify(obj.query);
   return format(obj);
-}
-
-function isAccessControlHeaders(
-  origin: string,
-  sourceOrigin: string
-): (res: Response) => Response {
-  return res => {
-    const h1 = res.headers.get("access-control-allow-origin") || "";
-    if (h1 !== origin && h1 !== "*") {
-      throw new Error(
-        `access-control-allow-origin header is [${h1}], expected [${origin}]`
-      );
-    }
-    // The AMP docs specify that the AMP-Access-Control-Allow-Source-Origin and
-    // Access-Control-Expose-Headers headers must be returned, but this is not
-    // in true: the runtime does check this header, but only if the
-    // requireAmpResponseSourceOrigin flag is true, and amp-story sets this to
-    // false.
-    //
-    // https://www.ampproject.org/docs/fundamentals/amp-cors-requests#ensuring-secure-responses
-    /*
-    const h2 = res.headers.get('amp-access-control-allow-source-origin') || '';
-    if (h2 !== sourceOrigin) throw new Error(
-      `amp-access-control-allow-source-origin header is [${h2}], expected [${sourceOrigin}]`
-    );
-    const h3 = res.headers.get('access-control-expose-headers') || '';
-    if (h3 !== 'AMP-Access-Control-Allow-Source-Origin') throw new Error(
-      `access-control-expose-headers is [${h3}], expected [AMP-Access-Control-Allow-Source-Origin]`
-    );
-    */
-    return res;
-  };
 }
 
 function buildSourceOrigin(url: string) {
@@ -449,7 +257,15 @@ async function canXhrCache(
     );
 }
 
-export const testBookendSameOrigin: Test = context => {
+export function BookendExists(context: Context) {
+  const { $ } = context;
+  const s1 = $("amp-story amp-story-bookend").attr("src");
+  const s2 = $("amp-story").attr("bookend-config-src");
+  const bookendSrc = s1 || s2;
+  return bookendSrc ? PASS() : WARN("no bookend found");
+}
+
+export function BookendAppearsOnOrigin(context: Context) {
   const { $, url } = context;
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
@@ -460,9 +276,9 @@ export const testBookendSameOrigin: Test = context => {
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrSameOrigin(context, bookendUrl!);
-};
+}
 
-export const testBookendCache: Test = context => {
+export function BookendAppearsOnCache(context: Context) {
   const { $, url } = context;
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
@@ -473,26 +289,26 @@ export const testBookendCache: Test = context => {
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
   return canXhrCache(context, bookendUrl!, "cdn.ampproject.org");
-};
+}
 
-export const testVideoSource: Test = ({ $ }) => {
+export function AmpVideoIsSpecifiedByAttribute({ $ }: Context) {
   if ($("amp-video[src]").length > 0) {
-    return FAIL(
+    return WARN(
       "<amp-video src> used instead of <amp-video><source/></amp-video>"
     );
   } else {
     return PASS();
   }
-};
+}
 
-export const testAmpStoryV1: Test = ({ $ }) => {
+export function StoryRuntimeIsV1({ $ }: Context) {
   const isV1 =
     $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length >
     0;
   return isV1 ? PASS() : WARN("amp-story-1.0.js not used (probably 0.1?)");
-};
+}
 
-export const testAmpStoryV1Metadata: Test = ({ $ }) => {
+export function StoryMetadataIsV1({ $ }: Context) {
   const isV1 =
     $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length >
     0;
@@ -516,15 +332,15 @@ export const testAmpStoryV1Metadata: Test = ({ $ }) => {
   } else {
     return PASS();
   }
-};
+}
 
-export const testMetaCharsetFirst: Test = ({ $ }) => {
+export function MetaCharsetIsFirst({ $ }: Context) {
   const firstChild = $("head *:first-child");
   const charset = firstChild.attr("charset");
   return !charset ? FAIL(`<meta charset> not the first <meta> tag`) : PASS();
-};
+}
 
-export const testRuntimePreloaded: Test = ({ $ }) => {
+export function RuntimeIsPreloaded({ $ }: Context) {
   const attr = [
     "href='https://cdn.ampproject.org/v0.js'",
     "rel='preload'",
@@ -538,24 +354,24 @@ export const testRuntimePreloaded: Test = ({ $ }) => {
     : WARN(
         "<link href=https://cdn.ampproject.org/v0.js rel=preload> is missing"
       );
-};
+}
 
-export const testMostlyText: Test = ({ $ }) => {
+export function StoryIsMostlyText({ $ }: Context) {
   const text = $("amp-story").text();
   if (text.length > 100) {
     return PASS();
   } else {
     return WARN(`minimal text in the story [${text}]`);
   }
-};
+}
 
-export const testThumbnails: TestList = async context => {
+export async function StoryMetadataThumbnailsAreOk(context: Context) {
   const $ = context.$;
   async function isSquare(url: string | undefined) {
     if (!url) {
       return false;
     }
-    const { width, height } = await getImageSize(
+    const { width, height } = await dimensions(
       context,
       absoluteUrl(url, context.url)!
     );
@@ -565,7 +381,7 @@ export const testThumbnails: TestList = async context => {
     if (!url) {
       return false;
     }
-    const { width, height } = await getImageSize(
+    const { width, height } = await dimensions(
       context,
       absoluteUrl(url, context.url)!
     );
@@ -575,13 +391,13 @@ export const testThumbnails: TestList = async context => {
     if (!url) {
       return false;
     }
-    const { width, height } = await getImageSize(
+    const { width, height } = await dimensions(
       context,
       absoluteUrl(url, context.url)!
     );
     return height > 0.74 * width && height < 0.76 * width;
   }
-  const inlineMetadata = getInlineMetadata($);
+  const inlineMetadata = metadataInline($);
 
   const res: Array<Promise<Message>> = [];
 
@@ -652,80 +468,77 @@ export const testThumbnails: TestList = async context => {
   })();
 
   return (await Promise.all(res)).filter(notPass);
-};
+}
 
-const testSingleAmpImg = (
-  context: Context,
-  {
-    src,
-    expectedWidth,
-    expectedHeight
-  }: { src: string; expectedWidth: number; expectedHeight: number }
-): Promise<Message> => {
-  const success = ({
-    height,
-    width
-  }: {
-    height: number;
-    width: number;
-  }): Promise<Message> => {
-    const actualHeight = height;
-    const actualWidth = width;
-    const actualRatio = Math.floor((actualWidth * 100) / actualHeight) / 100;
-    const expectedRatio =
-      Math.floor((expectedWidth * 100) / expectedHeight) / 100;
-    if (Math.abs(actualRatio - expectedRatio) > 0.015) {
-      const actualString = `${actualWidth}/${actualHeight} = ${actualRatio}`;
-      const expectedString = `${expectedWidth}/${expectedHeight} = ${expectedRatio}`;
-      return FAIL(
-        `[${src}]: actual ratio [${actualString}] does not match specified [${expectedString}]`
-      );
-    }
-    const actualVolume = actualWidth * actualHeight;
-    const expectedVolume = expectedWidth * expectedHeight;
-    if (expectedVolume < 0.25 * actualVolume) {
-      const actualString = `${actualWidth}x${actualHeight}`;
-      const expectedString = `${expectedWidth}x${expectedHeight}`;
-      return WARN(
-        `[${src}]: actual dimensions [${actualString}] are much larger than specified [${expectedString}]`
-      );
-    }
-    if (expectedVolume > 1.5 * actualVolume) {
-      const actualString = `${actualWidth}x${actualHeight}`;
-      const expectedString = `${expectedWidth}x${expectedHeight}`;
-      return WARN(
-        `[${src}]: actual dimensions [${actualString}] are much smaller than specified [${expectedString}]`
-      );
-    }
-    return PASS();
-  };
-  const fail = (e: { statusCode: number }) => {
-    if (e.statusCode === undefined) {
-      return FAIL(`[${src}] ${JSON.stringify(e)}`);
-    } else {
-      return FAIL(`[${src}] returned status ${e.statusCode}`);
-    }
-  };
-  return getImageSize(context, absoluteUrl(src, context.url)!).then(
-    success,
-    fail
-  );
-};
-
-export const testAmpImg: TestList = async context => {
+export async function AmpImgHeightWidthIsOk(context: Context) {
   const $ = context.$;
+
+  function test(
+    src: string,
+    expectedWidth: number,
+    expectedHeight: number
+  ): Promise<Message> {
+    const success = ({
+      height,
+      width
+    }: {
+      height: number;
+      width: number;
+    }): Promise<Message> => {
+      const actualHeight = height;
+      const actualWidth = width;
+      const actualRatio = Math.floor((actualWidth * 100) / actualHeight) / 100;
+      const expectedRatio =
+        Math.floor((expectedWidth * 100) / expectedHeight) / 100;
+      if (Math.abs(actualRatio - expectedRatio) > 0.015) {
+        const actualString = `${actualWidth}/${actualHeight} = ${actualRatio}`;
+        const expectedString = `${expectedWidth}/${expectedHeight} = ${expectedRatio}`;
+        return FAIL(
+          `[${src}]: actual ratio [${actualString}] does not match specified [${expectedString}]`
+        );
+      }
+      const actualVolume = actualWidth * actualHeight;
+      const expectedVolume = expectedWidth * expectedHeight;
+      if (expectedVolume < 0.25 * actualVolume) {
+        const actualString = `${actualWidth}x${actualHeight}`;
+        const expectedString = `${expectedWidth}x${expectedHeight}`;
+        return WARN(
+          `[${src}]: actual dimensions [${actualString}] are much larger than specified [${expectedString}]`
+        );
+      }
+      if (expectedVolume > 1.5 * actualVolume) {
+        const actualString = `${actualWidth}x${actualHeight}`;
+        const expectedString = `${expectedWidth}x${expectedHeight}`;
+        return WARN(
+          `[${src}]: actual dimensions [${actualString}] are much smaller than specified [${expectedString}]`
+        );
+      }
+      return PASS();
+    };
+    const fail = (e: { statusCode: number }) => {
+      if (e.statusCode === undefined) {
+        return FAIL(`[${src}] ${JSON.stringify(e)}`);
+      } else {
+        return FAIL(`[${src}] returned status ${e.statusCode}`);
+      }
+    };
+    return dimensions(context, absoluteUrl(src, context.url)!).then(
+      success,
+      fail
+    );
+  }
 
   return (await Promise.all(($("amp-img")
     .map((_, e) => {
       const src = $(e).attr("src");
       const expectedHeight = parseInt($(e).attr("height"), 10);
       const expectedWidth = parseInt($(e).attr("width"), 10);
-      return testSingleAmpImg(context, { src, expectedHeight, expectedWidth });
+      return test(src, expectedWidth, expectedHeight);
     })
     .get() as any) as Array<Promise<Message>>)).filter(notPass);
-};
+}
 
-export const testAmpImgShouldBeAmpPixel: TestList = async context => {
+export async function AmpImgAmpPixelPreferred(context: Context) {
   const $ = context.$;
   return await Promise.all($("amp-img[width=1][height=1]")
     .map((_, e) => {
@@ -735,30 +548,27 @@ export const testAmpImgShouldBeAmpPixel: TestList = async context => {
       );
     })
     .get() as Array<Promise<Message>>);
-};
+}
 
-export const testCorsSameOrigin: TestList = async context => {
-  const corsEndpoints = getCorsEndpoints(context.$);
-  return (await Promise.all(
-    corsEndpoints.map(s => canXhrSameOrigin(context, s))
-  )).filter(notPass);
-};
+export async function EndpointsAreAccessibleFromOrigin(context: Context) {
+  const e = corsEndpoints(context.$);
+  return (await Promise.all(e.map(s => canXhrSameOrigin(context, s)))).filter(
+    notPass
+  );
+}
 
-export const testCorsCache: TestList = async context => {
+export async function EndpointsAreAccessibleFromCache(context: Context) {
   // Cartesian product from https://stackoverflow.com/a/43053803/11543
   const cartesian = (a: any, b: any) =>
     [].concat(...a.map((d: any) => b.map((e: any) => [].concat(d, e))));
-  const corsEndpoints = getCorsEndpoints(context.$);
-  const product = cartesian(
-    corsEndpoints,
-    (await caches()).map(c => c.cacheDomain)
-  );
+  const e = corsEndpoints(context.$);
+  const product = cartesian(e, (await caches()).map(c => c.cacheDomain));
   return (await Promise.all(
     product.map(([xhrUrl, cacheSuffix]) =>
       canXhrCache(context, xhrUrl, cacheSuffix)
     )
   )).filter(notPass);
-};
+}
 
 export function cli(argv: string[]) {
   if (argv.length <= 2) {
@@ -808,12 +618,66 @@ export function cli(argv: string[]) {
     body
       .then(b => cheerio.load(b))
       // .then(c => { console.log(c.html()); return c; })
-      .then($ => testAll({ $, headers, url }))
+      .then($ => lint({ $, headers, url }))
       .then(r => console.log(JSON.stringify(r, null, 2)))
       // .then(() => process.exit(0))
       .catch(e => console.error(`error: ${e}`))
   );
 }
+
+export const lint = async (
+  context: Context
+): Promise<{ [key: string]: Message }> => {
+  const type = ampType(context.$);
+  let tests: Array<(Test | TestList)[]> = [];
+  tests[AmpType.Amp] = [
+    IsValid,
+    LinkRelCanonicalIsOk,
+    AmpVideoIsSmall,
+    AmpVideoIsSpecifiedByAttribute,
+    MetaCharsetIsFirst,
+    RuntimeIsPreloaded,
+    AmpImgHeightWidthIsOk,
+    AmpImgAmpPixelPreferred,
+    EndpointsAreAccessibleFromOrigin,
+    EndpointsAreAccessibleFromCache
+  ];
+  tests[AmpType.AmpStory] = ([] as (Test | TestList)[]).concat(
+    tests[AmpType.Amp],
+    [
+      BookendAppearsOnCache,
+      BookendAppearsOnOrigin,
+      BookendExists,
+      SchemaMetadataIsNews,
+      StoryRuntimeIsV1,
+      StoryMetadataIsV1,
+      StoryIsMostlyText,
+      StoryMetadataThumbnailsAreOk
+    ]
+  );
+  const res = await Promise.all(
+    // We need to cast f() to the (incorrect) union type (Test & TestList)
+    // because typescript cannot "synthesize an intersectional call signature
+    // when getting the members of a union type", see
+    // https://github.com/Microsoft/TypeScript/issues/7294#issuecomment-190335544
+    tests[type].map((f: Test | TestList) =>
+      (f as Test & TestList)(context).then((r: Message | Message[]) => [
+        f.name,
+        r
+      ])
+    )
+  );
+  return res.reduce(
+    (
+      a: { [key: string]: Message | Message[] },
+      kv: [string, Message | Message[]]
+    ) => {
+      a[kv[0].toLowerCase()] = kv[1];
+      return a;
+    },
+    {}
+  );
+};
 
 export const testAll = async (
   context: Context
@@ -827,13 +691,4 @@ export const testAll = async (
     a[kv[0].substring("test".length).toLowerCase()] = kv[1];
     return a;
   }, {});
-};
-
-export {
-  // alias "private" functions with prefix, for testing
-  getBody as _getBody,
-  getSchemaMetadata as _getSchemaMetadata,
-  getInlineMetadata as _getInlineMetadata,
-  getImageSize as _getImageSize,
-  getCorsEndpoints as _getCorsEndpoints
 };

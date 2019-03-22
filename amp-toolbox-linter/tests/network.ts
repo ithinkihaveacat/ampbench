@@ -1,226 +1,22 @@
-const FIXTURES = "network";
-
-import { existsSync } from "fs";
-
-import * as cheerio from "cheerio";
-import debug from "debug";
-import { diffJson as diff } from "diff";
-import { back as nockBack } from "nock";
-import { default as fetch } from "node-fetch";
-
-import { _getBody as getBody } from "../src";
-import { _getSchemaMetadata as getSchemaMetadata } from "../src";
-import { _getInlineMetadata as getInlineMetadata } from "../src";
-import { _getImageSize as getImageSize } from "../src";
-import { _getCorsEndpoints as getCorsEndpoints } from "../src";
+import { basename } from "path";
 import * as linter from "../src";
-
-import throat from "throat";
+import {
+  withFixture,
+  assertEqual,
+  assertFn,
+  runTestList,
+  assertMatch,
+  runTest,
+  assertNotEqual
+} from "./lib";
 
 const PASS = linter.PASS();
 
-const log = debug("linter");
-
-nockBack.fixtures = `${__dirname}/${FIXTURES}`;
-
-// Need to throttle to one run at a time because nock() works by monkey patching
-// the (global) http.* object, which means it can't run in parallel.
-const withFixture = throat(
-  1,
-  async <T>(fixtureName: string, fn: () => Promise<T>): Promise<T> => {
-    const fixturePath = `${fixtureName}.json`;
-    if (existsSync(`${nockBack.fixtures}/${fixturePath}`)) {
-      log(`nocking HTTP requests with fixture [${fixturePath}]`);
-      nockBack.setMode("lockdown");
-      const { nockDone } = await nockBack(fixturePath);
-      const res = await fn();
-      nockDone();
-      return res;
-    } else {
-      log(`recording HTTP requests to fixture [${fixturePath}] ...`);
-      nockBack.setMode("record");
-      const { nockDone } = await nockBack(fixturePath);
-      const res = await fn();
-      return new Promise<T>(resolve => {
-        setTimeout(() => {
-          // wait for probe-image-size's aborts to settle
-          nockDone();
-          log(`... created fixture [${fixturePath}]`);
-          resolve(res);
-        }, 2000);
-      });
-    }
-  }
-) as <T>(fixtureName: string, fn: () => Promise<T>) => Promise<T>;
-
-async function assertEqual<T extends object>(
-  testName: string,
-  actual: T | Promise<T>,
-  expected: T | Promise<T>
-) {
-  COUNT++;
-  const res = diff(
-    await Promise.resolve(expected),
-    await Promise.resolve(actual)
-  );
-  if (res && res.length === 1) {
-    console.log(`ok ${COUNT} - ${testName}`);
-  } else {
-    const as = JSON.stringify(await Promise.resolve(actual));
-    const es = JSON.stringify(await Promise.resolve(expected));
-    console.log(`not ok ${COUNT} - ${testName} actual: ${as}, expected: ${es}`);
-  }
-  return res;
-}
-
-async function assertNotEqual<T extends object>(
-  testName: string,
-  actual: T | Promise<T>,
-  expected: T | Promise<T>
-) {
-  COUNT++;
-  const res = diff(
-    await Promise.resolve(expected),
-    await Promise.resolve(actual)
-  );
-  if (res && res.length === 1) {
-    const as = JSON.stringify(await Promise.resolve(actual));
-    const es = JSON.stringify(await Promise.resolve(expected));
-    console.log(`not ok ${COUNT} - ${testName} actual: ${as}, expected: ${es}`);
-  } else {
-    console.log(`ok ${COUNT} - ${testName}`);
-  }
-  return res;
-}
-
-async function assertMatch<T extends object>(
-  testName: string,
-  actual: T | Promise<T>,
-  expected: string
-) {
-  COUNT++;
-  const s = JSON.stringify(await Promise.resolve(actual));
-  if (s.match(expected)) {
-    console.log(`ok ${COUNT} - ${testName}`);
-  } else {
-    console.log(`not ok ${COUNT} - ${testName} actual: ${s}`);
-  }
-}
-
-async function assertFn<T extends object>(
-  testName: string,
-  actual: T | Promise<T>,
-  expectedFn: (actual: T) => string
-) {
-  COUNT++;
-  const res = expectedFn(await actual);
-  if (!res) {
-    console.log(`ok ${COUNT} - ${testName}`);
-  } else {
-    console.log(`not ok ${COUNT} - ${testName} [${res}]`);
-  }
-  return res;
-}
-
-async function runTest<T>(fn: linter.Test, url: string) {
-  const res = await fetch(url);
-  const body = await res.text();
-  const $ = cheerio.load(body);
-  const context = {
-    $,
-    headers: {},
-    url
-  };
-  return Promise.resolve(fn(context));
-}
-
-async function runTestList<T>(fn: linter.TestList, url: string) {
-  const res = await fetch(url);
-  const body = await res.text();
-  const $ = cheerio.load(body);
-  const context = {
-    $,
-    headers: {},
-    url
-  };
-  return Promise.resolve(fn(context));
-}
-
-async function runCheerioFn<T>(
-  fn: ($: CheerioStatic, url?: string) => T | Promise<T>,
-  url: string
-) {
-  const res = await fetch(url);
-  const body = await res.text();
-  const $ = cheerio.load(body);
-  return Promise.resolve(fn($, url));
-}
-
-async function runUrlFn<T>(fn: (url: string) => T, url: string) {
-  return Promise.resolve(fn(url));
-}
-
-let COUNT = 0;
-
-withFixture("getschemametadata", () =>
-  assertEqual(
-    "getSchemaMetadata",
-    runCheerioFn(
-      getSchemaMetadata,
-      "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
-    ),
-    {
-      "@context": "http://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        {
-          "@type": "ListItem",
-          item: {
-            "@id": "https://ampbyexample.com/#/stories#stories/introduction",
-            name: "Introduction"
-          },
-          position: 1
-        },
-        {
-          "@type": "ListItem",
-          item: {
-            "@id":
-              "https://ampbyexample.com/stories/introduction/amp_story_hello_world/",
-            name: " AMP Story Hello World"
-          },
-          position: 2
-        }
-      ]
-    }
-  )
-);
-
-withFixture("getinlinemetadata", () =>
-  assertEqual(
-    "getInlineMetadata",
-    runCheerioFn(
-      getInlineMetadata,
-      "https://ithinkihaveacat.github.io/hello-world-amp-story/"
-    ),
-    {
-      "poster-portrait-src": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/",
-        "Cantilever_bridge_human_model.jpg/",
-        "627px-Cantilever_bridge_human_model.jpg"
-      ].join(""),
-      publisher: "Michael Stillwell",
-      "publisher-logo-src":
-        "https://s.gravatar.com/avatar/3928085cafc1e496fb3d990a9959f233?s=150",
-      title: "Hello, Ken Burns"
-    }
-  )
-);
-
 withFixture("thumbnails1", () =>
   assertFn<linter.Message[]>(
-    "testThumbnails - correctly sized",
+    `${linter.StoryMetadataThumbnailsAreOk.name} - correctly sized`,
     runTestList(
-      linter.testThumbnails,
+      linter.StoryMetadataThumbnailsAreOk,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     actual => {
@@ -231,64 +27,69 @@ withFixture("thumbnails1", () =>
 
 withFixture("thumbnails2", () =>
   assertMatch(
-    "testThumbnails - publisher-logo-src missing",
-    runTestList(linter.testThumbnails, "https://regular-biology.glitch.me/"),
+    `${linter.StoryMetadataThumbnailsAreOk.name} - publisher-logo-src missing`,
+    runTestList(
+      linter.StoryMetadataThumbnailsAreOk,
+      "https://regular-biology.glitch.me/"
+    ),
     "publisher-logo-src"
   )
 );
 
 withFixture("thumbnails3", () =>
   assertMatch(
-    "testThumbnails - poster-portrait-src not found",
-    runTestList(linter.testThumbnails, "http://localhost:5000/"),
+    `${
+      linter.StoryMetadataThumbnailsAreOk.name
+    } - poster-portrait-src not found`,
+    runTestList(linter.StoryMetadataThumbnailsAreOk, "http://localhost:5000/"),
     "not 200"
   )
 );
 
 withFixture("testvalidity1", () =>
   assertEqual(
-    "testValidity - valid",
-    runTest(linter.testValidity, "https://www.ampproject.org/"),
+    `${linter.IsValid.name} - valid`,
+    runTest(linter.IsValid, "https://www.ampproject.org/"),
     PASS
   )
 );
 
 withFixture("testvalidity2", async () =>
   assertNotEqual(
-    "testValidity - not valid",
-    runTest(linter.testValidity, "https://precious-sturgeon.glitch.me/"),
+    `${linter.IsValid.name} - not valid`,
+    runTest(linter.IsValid, "https://precious-sturgeon.glitch.me/"),
     PASS
   )
 );
 
 withFixture("testcanonical1", () =>
   assertEqual(
-    "testCanonical - canonical",
-    runTest(linter.testCanonical, "https://regular-biology.glitch.me/"),
+    `${linter.LinkRelCanonicalIsOk.name} - canonical`,
+    runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
     PASS
   )
 );
 
 withFixture("testcanonical2", () =>
   assertMatch(
-    "testCanonical - not canonical",
-    runTest(linter.testCanonical, "https://regular-biology.glitch.me/"),
+    `${linter.LinkRelCanonicalIsOk.name} - not canonical`,
+    runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
     "https://regular-biology.glitch.me/"
   )
 );
 
 withFixture("testcanonical3", () =>
   assertEqual(
-    "testCanonical - relative",
-    runTest(linter.testCanonical, "https://regular-biology.glitch.me/"),
+    `${linter.LinkRelCanonicalIsOk.name} - relative`,
+    runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
     PASS
   )
 );
 
 withFixture("testvideosize1", () =>
   assertEqual(
-    "testVideoSize - too big",
-    runTest(linter.testVideoSize, "https://regular-biology.glitch.me/"),
+    `${linter.AmpVideoIsSmall.name} - too big`,
+    runTest(linter.AmpVideoIsSmall, "https://regular-biology.glitch.me/"),
     {
       message:
         "videos over 4MB: [https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4]",
@@ -299,17 +100,17 @@ withFixture("testvideosize1", () =>
 
 withFixture("testvideosize2", () =>
   assertEqual(
-    "testVideoSize - good size #1",
-    runTest(linter.testVideoSize, "https://regular-biology.glitch.me/"),
+    `${linter.AmpVideoIsSmall.name} - good size #1`,
+    runTest(linter.AmpVideoIsSmall, "https://regular-biology.glitch.me/"),
     PASS
   )
 );
 
 withFixture("testvideosize3", () =>
   assertEqual(
-    "testVideoSize - good size #2",
+    `${linter.AmpVideoIsSmall.name} - good size #2`,
     runTest(
-      linter.testVideoSize,
+      linter.AmpVideoIsSmall,
       "https://ampbyexample.com/stories/features/media/preview/embed/"
     ),
     PASS
@@ -318,9 +119,9 @@ withFixture("testvideosize3", () =>
 
 withFixture("bookendsameorigin1", () =>
   assertEqual(
-    "testBookendSameOrigin - configured correctly",
+    `${linter.BookendAppearsOnOrigin.name} - configured correctly`,
     runTest(
-      linter.testBookendSameOrigin,
+      linter.BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     PASS
@@ -329,9 +130,9 @@ withFixture("bookendsameorigin1", () =>
 
 withFixture("bookendsameorigin2", () =>
   assertMatch(
-    "testBookendSameOrigin - bookend not application/json",
+    `${linter.BookendAppearsOnOrigin.name} - bookend not application/json`,
     runTest(
-      linter.testBookendSameOrigin,
+      linter.BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "application/json"
@@ -340,9 +141,9 @@ withFixture("bookendsameorigin2", () =>
 
 withFixture("bookendsameorigin3", () =>
   assertMatch(
-    "testBookendSameOrigin - bookend not JSON",
+    `${linter.BookendAppearsOnOrigin.name} - bookend not JSON`,
     runTest(
-      linter.testBookendSameOrigin,
+      linter.BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "JSON"
@@ -351,9 +152,11 @@ withFixture("bookendsameorigin3", () =>
 
 withFixture("bookendsameorgin4", () =>
   assertEqual(
-    "testBookendSameOrigin - v0 AMP Story - configured correctly",
+    `${
+      linter.BookendAppearsOnOrigin.name
+    } - v0 AMP Story - configured correctly`,
     runTest(
-      linter.testBookendSameOrigin,
+      linter.BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     PASS
@@ -362,9 +165,9 @@ withFixture("bookendsameorgin4", () =>
 
 withFixture("bookendcache1", () =>
   assertEqual(
-    "testBookendCache - configured correctly",
+    `${linter.BookendAppearsOnCache.name} - configured correctly`,
     runTest(
-      linter.testBookendCache,
+      linter.BookendAppearsOnCache,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     PASS
@@ -373,9 +176,9 @@ withFixture("bookendcache1", () =>
 
 withFixture("bookendcache2", () =>
   assertMatch(
-    "testBookendCache - incorrect headers",
+    `${linter.BookendAppearsOnCache.name} - incorrect headers`,
     runTest(
-      linter.testBookendCache,
+      linter.BookendAppearsOnCache,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "access-control-allow-origin"
@@ -384,9 +187,9 @@ withFixture("bookendcache2", () =>
 
 withFixture("ampstoryv1metadata1", () =>
   assertEqual(
-    "testAmpStoryV1Metadata - valid metadata",
+    `${linter.StoryMetadataIsV1.name} - valid metadata`,
     runTest(
-      linter.testAmpStoryV1Metadata,
+      linter.StoryMetadataIsV1,
       "https://ithinkihaveacat.github.io/hello-world-amp-story/"
     ),
     PASS
@@ -395,9 +198,9 @@ withFixture("ampstoryv1metadata1", () =>
 
 withFixture("ampstoryv1metadata2", () =>
   assertMatch(
-    "testAmpStoryV1Metadata - invalid metadata",
+    `${linter.StoryMetadataIsV1.name} - invalid metadata`,
     runTest(
-      linter.testAmpStoryV1Metadata,
+      linter.StoryMetadataIsV1,
       "https://ithinkihaveacat-hello-world-amp-story-7.glitch.me/"
     ),
     "publisher-logo-src"
@@ -406,9 +209,9 @@ withFixture("ampstoryv1metadata2", () =>
 
 withFixture("ampimg1", () =>
   assertFn<linter.Message[]>(
-    "testAmpImg - height/width are incorrect #1",
+    `${linter.AmpImgHeightWidthIsOk.name} - height/width are incorrect #1`,
     runTestList(
-      linter.testAmpImg,
+      linter.AmpImgHeightWidthIsOk,
       "https://ampbyexample.com/components/amp-img/"
     ),
     res => {
@@ -426,9 +229,9 @@ withFixture("ampimg1", () =>
 
 withFixture("ampimg2", () =>
   assertFn<linter.Message[]>(
-    "testAmpImg - height/width are incorrect #2",
+    `${linter.AmpImgHeightWidthIsOk.name} - height/width are incorrect #2`,
     runTestList(
-      linter.testAmpImg,
+      linter.AmpImgHeightWidthIsOk,
       "https://www.ampproject.org/docs/reference/components/amp-story"
     ),
     res => {
@@ -453,9 +256,9 @@ withFixture("ampimg2", () =>
 
 withFixture("ampimg3", () =>
   assertFn<linter.Message[]>(
-    "testAmpImg - height/width are correct",
+    `${linter.AmpImgHeightWidthIsOk.name} - height/width are correct`,
     runTestList(
-      linter.testAmpImg,
+      linter.AmpImgHeightWidthIsOk,
       "https://ampbyexample.com/introduction/hello_world/"
     ),
     res => {
@@ -466,29 +269,13 @@ withFixture("ampimg3", () =>
   )
 );
 
-withFixture("corsendpoints1", () =>
-  assertEqual(
-    "getCorsEndpoints - all endpoints extracted (AMP)",
-    runCheerioFn(getCorsEndpoints, "https://swift-track.glitch.me/"),
-    ["https://ampbyexample.com/json/examples.json"]
-  )
-);
-
-withFixture("corsendpoints2", () =>
-  assertEqual(
-    "getCorsEndpoints - all endpoints extracted (AMP Story)",
-    runCheerioFn(
-      getCorsEndpoints,
-      "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
-    ),
-    ["https://ampbyexample.com/json/bookend.json"]
-  )
-);
-
 withFixture("cors1", () =>
   assertFn<linter.Message[]>(
-    "testCors - all headers correct",
-    runTestList(linter.testCorsSameOrigin, "https://swift-track.glitch.me/"),
+    `${linter.EndpointsAreAccessibleFromOrigin.name} - all headers correct`,
+    runTestList(
+      linter.EndpointsAreAccessibleFromOrigin,
+      "https://swift-track.glitch.me/"
+    ),
     res => {
       return res.length === 0
         ? ""
@@ -499,26 +286,38 @@ withFixture("cors1", () =>
 
 withFixture("cors2", () =>
   assertMatch(
-    "testCors - endpoint is 404",
-    runTestList(linter.testCorsSameOrigin, "https://swift-track.glitch.me/"),
+    `${linter.EndpointsAreAccessibleFromOrigin.name} - endpoint is 404`,
+    runTestList(
+      linter.EndpointsAreAccessibleFromOrigin,
+      "https://swift-track.glitch.me/"
+    ),
     "404"
   )
 );
 
 withFixture("cors3", () =>
   assertMatch(
-    "testCors - endpoint not application/json",
-    runTestList(linter.testCorsSameOrigin, "https://swift-track.glitch.me/"),
+    `${
+      linter.EndpointsAreAccessibleFromOrigin.name
+    } - endpoint not application/json`,
+    runTestList(
+      linter.EndpointsAreAccessibleFromOrigin,
+      "https://swift-track.glitch.me/"
+    ),
     "application/json"
   )
 );
 
 withFixture("cors4", () =>
   assertEqual(
-    "testCorsCache - all headers correct",
-    runTestList(linter.testCorsCache, "https://swift-track.glitch.me/"),
+    `${linter.EndpointsAreAccessibleFromCache.name} - all headers correct`,
+    runTestList(
+      linter.EndpointsAreAccessibleFromCache,
+      "https://swift-track.glitch.me/"
+    ),
     []
   )
 );
 
-console.log(`1..30`);
+console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
+console.log(`1..26`);

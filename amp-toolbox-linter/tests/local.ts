@@ -64,6 +64,8 @@ async function run(prefix: string) {
 
 let COUNT = 0;
 
+console.log(`# ${basename(__filename)} - HTML-only tests`);
+
 if (process.argv.length === 3) {
   const prefix = process.argv[2];
 

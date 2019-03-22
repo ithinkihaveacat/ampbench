@@ -34,11 +34,11 @@
     "@types/debug": "4.1.2",
     "@types/diff": "^4.0.1",
     "@types/nock": "^9.3.1",
-    "@types/node-fetch": "^2.1.6",
+    "@types/node-fetch": "^2.1.7",
     "diff": "^4.0.1",
     "nock": "^10.0.6",
     "tap-parser": "^9.3.1",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.3.4000"
   },
   "@pika/pack": {
     "pipeline": [

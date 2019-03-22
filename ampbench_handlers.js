@@ -490,7 +490,7 @@ function validate(route, user_agent, user_agent_name, req, res, on_validate_call
                                         check_google_amp_cache_status_css: check_google_amp_cache_status_css,
                                         check_google_amp_cache_return: check_google_amp_cache_return,
                                         variant_is_amp_story: isAmpStory,
-                                        amp_story_thumbnails_message: thumbnailCheck.then((res) => res.map(r => r.message).join(", ")),
+                                        amp_story_thumbnails_message: thumbnailCheck.then((res) => res.map((r) => r.message).join(', ')),
                                         amp_story_thumbnails_status: thumbnailCheck.then((res) => get_check_status_css(res.length == 0 ? CHECK_PASS : CHECK_FAIL)),
                                         // check_redirects_return: check_redirects_return,
                                         http_redirect_status: get_check_status_css(http_redirect_status),

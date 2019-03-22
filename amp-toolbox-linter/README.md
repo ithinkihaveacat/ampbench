@@ -60,9 +60,13 @@ Builds `*.js` from `*.ts`.
 
 #### `npm test`
 
-Runs the tests in the
+Runs the tests.
 
-#### `npm watch`
+#### `npm run lint`
+
+Checks the code for lint errors.
+
+#### `npm run watch`
 
 Automatically rebuild `*.js` whenever `*.ts` changes.
 

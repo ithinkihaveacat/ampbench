@@ -602,6 +602,10 @@ export function cli(argv: string[]) {
       return a;
     }, {});
 
+  const options = seq(2, argv.length - 1)
+    .filter(n => argv[n] === "curl" || argv[n] === "-H" || argv[n - 1] === "-H")
+    .map(n => argv[n]);
+
   const body = (() => {
     if (url === "-") {
       return Promise.resolve(readFileSync("/dev/stdin").toString());

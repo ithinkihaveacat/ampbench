@@ -570,6 +570,19 @@ export async function EndpointsAreAccessibleFromCache(context: Context) {
   )).filter(notPass);
 }
 
+export async function SxgVaryOnAcceptAct({ url, headers }: Context) {
+  const res = await fetch(url, { headers });
+  const vary = ("" + res.headers.get("vary"))
+    .split(",")
+    .map(s => s.toLowerCase().trim());
+  if (vary.length == 0) return FAIL(`[Vary] header is missing`);
+  if (!vary.includes("amp-cache-transform"))
+    return FAIL(`[Vary] header is missing value [AMP-Cache-Transform]`);
+  if (!vary.includes("accept"))
+    return FAIL(`[Vary] headers is missing value [Accept}`);
+  return PASS();
+}
+
 export function cli(argv: string[]) {
   if (argv.length <= 2) {
     console.error(

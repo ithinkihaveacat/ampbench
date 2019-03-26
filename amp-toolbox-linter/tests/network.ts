@@ -319,5 +319,55 @@ withFixture("cors4", () =>
   )
 );
 
+withFixture("sxgvary1", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${linter.SxgVaryOnAcceptAct.name} - vary header not returned`,
+    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}`
+  );
+});
+
+withFixture("sxgvary2", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${linter.SxgVaryOnAcceptAct.name} - no vary on amp-cache-transform`,
+    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}`
+  );
+});
+
+withFixture("sxgvary3", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${linter.SxgVaryOnAcceptAct.name} - no vary on accept`,
+    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}`
+  );
+});
+
+withFixture("sxgvary4", () => {
+  const expected = "PASS";
+  return assertFn(
+    `${
+      linter.SxgVaryOnAcceptAct.name
+    } - vary on accept and amp-cache-transform`,
+    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}`
+  );
+});
+
 console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
 console.log(`1..26`);

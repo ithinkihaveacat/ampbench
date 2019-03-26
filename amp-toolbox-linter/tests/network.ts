@@ -370,4 +370,4 @@ withFixture("sxgvary4", () => {
 });
 
 console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
-console.log(`1..26`);
+console.log(`1..30`);

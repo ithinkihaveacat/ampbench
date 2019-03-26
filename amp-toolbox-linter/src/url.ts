@@ -7,7 +7,7 @@ const UA_GOOGLEBOT_MOBILE = [
 
 import throat from "throat";
 
-import { Context } from "vm";
+import { Context } from "./";
 
 import fetch, { Request } from "node-fetch";
 

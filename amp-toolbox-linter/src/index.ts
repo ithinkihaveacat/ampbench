@@ -6,6 +6,7 @@ import { stringify } from "querystring";
 import { createCacheUrl } from "amp-toolbox-cache-url";
 import { default as fetch, Request, RequestInit, Response } from "node-fetch";
 import cheerio from "cheerio";
+import program from "commander";
 
 import { validate } from "./validate";
 import { caches } from "./caches";
@@ -584,14 +585,25 @@ export async function SxgVaryOnAcceptAct({ url, headers }: Context) {
 }
 
 export function cli(argv: string[]) {
-  if (argv.length <= 2) {
-    console.error(
-      `usage: ${basename(argv[0])} ${basename(argv[1])} URL|copy_as_cURL`
-    );
-    process.exit(1);
-  }
+  program
+    .version(require("../package.json").version)
+    .usage(`amplint [options] URL|copy_as_cURL`)
+    .option(
+      `-t, --type <string>`,
+      "override input type",
+      /^(auto|sxg|amp|ampstory)$/,
+      "auto"
+    )
+    .on("--help", function() {
+      console.log("");
+      console.log("Examples:");
+      console.log("  $ amplint https://www.ampproject.org/");
+      console.log("  $ amplint --type sxg https://www.ampbyexample.org/");
+    });
 
-  const url = argv[2] === "-" ? "-" : argv.filter(s => s.match(/^http/))[0];
+  if (argv.length <= 2) {
+    program.help();
+  }
 
   function seq(first: number, last: number): number[] {
     if (first < last) {
@@ -603,6 +615,8 @@ export function cli(argv: string[]) {
     }
   }
 
+  // Main reason to support curl-style arguments is to provide cookies that
+  // avoid GDPR interstitials.
   const headers = seq(2, argv.length - 1)
     .filter(n => argv[n] === "-H")
     .map(n => argv[n + 1])
@@ -615,39 +629,49 @@ export function cli(argv: string[]) {
       return a;
     }, {});
 
-  const options = seq(2, argv.length - 1)
-    .filter(n => argv[n] === "curl" || argv[n] === "-H" || argv[n - 1] === "-H")
+  const options = seq(0, argv.length - 1)
+    .filter(n => argv[n] !== "curl" && argv[n] !== "-H" && argv[n - 1] !== "-H")
     .map(n => argv[n]);
 
-  const body = (() => {
-    if (url === "-") {
-      return Promise.resolve(readFileSync("/dev/stdin").toString());
-    } else {
-      return fetch(url, { headers }).then(r =>
-        r.ok
-          ? r.text()
-          : Promise.reject(`couldn't load [${url}]: ${r.statusText}`)
-      );
-    }
-  })();
+  program.parse(options);
+  const url = program.args[0];
 
-  return (
-    body
+  if (program.type === "sxg") {
+    return sxglint(url).then(console.log);
+  } else {
+    const body = (() => {
+      if (url === "-") {
+        return Promise.resolve(readFileSync("/dev/stdin").toString());
+      } else {
+        return fetch(url, { headers }).then(
+          r =>
+            r.ok
+              ? r.text()
+              : Promise.reject(`couldn't load [${url}]: ${r.statusText}`),
+          e => Promise.reject(`couldn't load [${url}]`)
+        );
+      }
+    })();
+
+    return body
       .then(b => cheerio.load(b))
-      // .then(c => { console.log(c.html()); return c; })
-      .then($ => lint({ $, headers, url }))
+      .then($ => amplint({ $, headers, url }))
       .then(r => console.log(JSON.stringify(r, null, 2)))
-      // .then(() => process.exit(0))
-      .catch(e => console.error(`error: ${e}`))
-  );
+      .catch(e => console.error(`error: ${e}`));
+  }
 }
 
-export const lint = async (
+export async function sxglint(
+  url: string
+): Promise<{ [key: string]: Message }> {
+  return { foo: { status: "PASS", message: "bar" } };
+}
+
+export async function amplint(
   context: Context
-): Promise<{ [key: string]: Message }> => {
+): Promise<{ [key: string]: Message }> {
   const type = ampType(context.$);
-  let tests: Array<(Test | TestList)[]> = [];
-  tests[AmpType.Amp] = [
+  let tests: Array<Test | TestList> = [
     IsValid,
     LinkRelCanonicalIsOk,
     AmpVideoIsSmall,
@@ -659,9 +683,8 @@ export const lint = async (
     EndpointsAreAccessibleFromOrigin,
     EndpointsAreAccessibleFromCache
   ];
-  tests[AmpType.AmpStory] = ([] as (Test | TestList)[]).concat(
-    tests[AmpType.Amp],
-    [
+  if (type === AmpType.AmpStory) {
+    tests.concat([
       BookendAppearsOnCache,
       BookendAppearsOnOrigin,
       BookendExists,
@@ -670,14 +693,14 @@ export const lint = async (
       StoryMetadataIsV1,
       StoryIsMostlyText,
       StoryMetadataThumbnailsAreOk
-    ]
-  );
+    ]);
+  }
   const res = await Promise.all(
     // We need to cast f() to the (incorrect) union type (Test & TestList)
     // because typescript cannot "synthesize an intersectional call signature
     // when getting the members of a union type", see
     // https://github.com/Microsoft/TypeScript/issues/7294#issuecomment-190335544
-    tests[type].map((f: Test | TestList) =>
+    tests.map((f: Test | TestList) =>
       (f as Test & TestList)(context).then((r: Message | Message[]) => [
         f.name,
         r
@@ -694,6 +717,6 @@ export const lint = async (
     },
     {}
   );
-};
+}
 
 export { ampType as getAmpType };

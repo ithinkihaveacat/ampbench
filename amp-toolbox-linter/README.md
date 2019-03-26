@@ -79,7 +79,7 @@ directory install via `npm install amp-toolbox-linter/pkg`.
 
 Uses @pika's `pack publish` to publish to npm.
 
-### Suggested Workflow
+### Suggested Test-Creation Workflow
 
 1. Create stub function in `index.ts`, that always "fails". e.g. it always
    returns `qqqqqq`. It should implement either the `Test` or `TestList`

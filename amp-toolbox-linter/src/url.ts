@@ -35,7 +35,7 @@ export function fetchToCurl(
     .map(k => `-H '${k}: ${headers[k]}'`)
     .join(" ");
 
-  return `curl -i ${h} '${url}'`;
+  return `curl -sS -i ${h} '${url}'`;
 }
 
 export const redirectUrl = throat(

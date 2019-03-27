@@ -25,11 +25,12 @@ import {
   ampType
 } from "./helper";
 
-export enum AmpType {
+export enum LintType {
   Amp,
   AmpStory,
   Amp4Ads,
-  Amp4Email
+  Amp4Email,
+  Sxg
 }
 
 export interface ActualExpected {
@@ -573,42 +574,53 @@ export async function EndpointsAreAccessibleFromCache(context: Context) {
 
 export async function SxgVaryOnAcceptAct({ url, headers }: Context) {
   const res = await fetch(url, { headers });
+  const debug = `debug: ${fetchToCurl(url, { headers })}`;
   const vary = ("" + res.headers.get("vary"))
     .split(",")
     .map(s => s.toLowerCase().trim());
-  if (vary.length == 0) return FAIL(`[Vary] header is missing`);
+  if (vary.length == 0) return FAIL(`[Vary] header is missing [${debug}]`);
   if (!vary.includes("amp-cache-transform"))
-    return FAIL(`[Vary] header is missing value [AMP-Cache-Transform]`);
+    return FAIL(
+      `[Vary] header is missing value [AMP-Cache-Transform] [${debug}]`
+    );
   if (!vary.includes("accept"))
-    return FAIL(`[Vary] headers is missing value [Accept}`);
+    return FAIL(`[Vary] header is missing value [Accept] [${debug}]`);
   return PASS();
 }
 
 export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
-  const res1 = await fetch(url, {
+  const opt1 = {
     headers: Object.assign({ accept: "text/html" }, headers)
-  });
+  };
+  const res1 = await fetch(url, opt1);
   const hdr1 = res1.headers.get("content-type") || "";
   if (hdr1.indexOf("application/signed-exchange") !== -1) {
     return FAIL(
-      `[Content-Type: application/signed-exchange] incorrectly returned for [Accept: text/html]`
+      `[Content-Type: application/signed-exchange] incorrectly returned for [Accept: text/html] [debug: ${fetchToCurl(
+        url,
+        opt1
+      )}]`
     );
   }
 
-  const res2 = await fetch(url, {
+  const opt2 = {
     headers: Object.assign(
       { accept: "application/signed-exchange;v=b3" },
       headers
     )
-  });
+  };
+  const res2 = await fetch(url, opt2);
   const hdr2 = res2.headers.get("content-type") || "";
   if (hdr2.indexOf("application/signed-exchange") !== -1) {
     return FAIL(
-      `[Content-Type: application/signed-exchange] incorrectly returned for [Accept: application/signed-exchange;v=b3]`
+      `[Content-Type: application/signed-exchange] incorrectly returned for [Accept: application/signed-exchange;v=b3] [debug: ${fetchToCurl(
+        url,
+        opt2
+      )}]`
     );
   }
 
-  const res3 = await fetch(url, {
+  const opt3 = {
     headers: Object.assign(
       {
         accept: "application/signed-exchange;v=b3",
@@ -616,11 +628,15 @@ export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
       },
       headers
     )
-  });
+  };
+  const res3 = await fetch(url, opt3);
   const hdr3 = res3.headers.get("content-type") || "";
   if (hdr3.indexOf("application/signed-exchange") === -1) {
     return FAIL(
-      `[Content-Type: application/signed-exchange] not returned for [Accept: application/signed-exchange;v=b3], [AMP-Cache-Transform: google;v="1"]`
+      `[Content-Type: application/signed-exchange] not returned for [Accept: application/signed-exchange;v=b3], [AMP-Cache-Transform: google;v="1"] [debug: ${fetchToCurl(
+        url,
+        opt3
+      )}]`
     );
   }
 
@@ -694,42 +710,38 @@ export function cli(argv: string[]) {
   program.parse(options);
   const url = program.args[0];
 
-  if (program.type === "sxg") {
-    return sxglint(url).then(console.log);
-  } else {
-    const body = (() => {
-      if (url === "-") {
-        return Promise.resolve(readFileSync("/dev/stdin").toString());
-      } else {
-        return fetch(url, { headers }).then(
-          r =>
-            r.ok
-              ? r.text()
-              : Promise.reject(`couldn't load [${url}]: ${r.statusText}`),
-          e => Promise.reject(`couldn't load [${url}]`)
-        );
-      }
-    })();
+  const body = (() => {
+    if (url === "-") {
+      return Promise.resolve(readFileSync("/dev/stdin").toString());
+    } else {
+      return fetch(url, { headers }).then(
+        r =>
+          r.ok
+            ? r.text()
+            : Promise.reject(`couldn't load [${url}]: ${r.statusText}`),
+        e => Promise.reject(`couldn't load [${url}]`)
+      );
+    }
+  })();
 
-    return body
-      .then(b => cheerio.load(b))
-      .then($ => amplint({ $, headers, url }))
-      .then(r => console.log(JSON.stringify(r, null, 2)))
-      .catch(e => console.error(`error: ${e}`));
-  }
+  return body
+    .then(b => cheerio.load(b))
+    .then($ => {
+      const tests = testsForType(program.type, $);
+      return lint(tests, { $, headers, url });
+    })
+    .then(r => console.log(JSON.stringify(r, null, 2)))
+    .catch(e => console.error(`error: ${e}`));
 }
 
-export async function sxglint(
-  url: string
-): Promise<{ [key: string]: Message }> {
-  return { foo: { status: "PASS", message: "bar" } };
-}
-
-export async function amplint(
-  context: Context
-): Promise<{ [key: string]: Message }> {
-  const type = ampType(context.$);
-  let tests: Array<Test | TestList> = [
+function testsForType(type: string, $: CheerioStatic) {
+  const tests: Map<LintType, Array<Test | TestList>> = new Map();
+  tests.set(LintType.Sxg, [
+    SxgAmppkgIsForwarded,
+    SxgContentNegotiationIsOk,
+    SxgVaryOnAcceptAct
+  ]);
+  tests.set(LintType.Amp, [
     IsValid,
     LinkRelCanonicalIsOk,
     AmpVideoIsSmall,
@@ -740,9 +752,10 @@ export async function amplint(
     AmpImgAmpPixelPreferred,
     EndpointsAreAccessibleFromOrigin,
     EndpointsAreAccessibleFromCache
-  ];
-  if (type === AmpType.AmpStory) {
-    tests.concat([
+  ]);
+  tests.set(
+    LintType.AmpStory,
+    (tests.get(LintType.Amp) || []).concat([
       BookendAppearsOnCache,
       BookendAppearsOnOrigin,
       BookendExists,
@@ -751,8 +764,26 @@ export async function amplint(
       StoryMetadataIsV1,
       StoryIsMostlyText,
       StoryMetadataThumbnailsAreOk
-    ]);
+    ])
+  );
+  switch (type) {
+    case "sxg":
+      return tests.get(LintType.Sxg) || [];
+    case "amp":
+      return tests.get(LintType.Amp) || [];
+    case "ampstory":
+      return tests.get(LintType.AmpStory) || [];
+    case "auto":
+      return tests.get(ampType($)) || [];
+    default:
+      return [];
   }
+}
+
+export async function lint(
+  tests: Array<Test | TestList>,
+  context: Context
+): Promise<{ [key: string]: Message }> {
   const res = await Promise.all(
     // We need to cast f() to the (incorrect) union type (Test & TestList)
     // because typescript cannot "synthesize an intersectional call signature

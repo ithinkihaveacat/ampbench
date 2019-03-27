@@ -1,4 +1,4 @@
-import { AmpType } from ".";
+import { LintType } from ".";
 
 interface InlineMetadata {
   title: string;
@@ -41,10 +41,10 @@ export function corsEndpoints($: CheerioStatic) {
     .filter(s => !!s);
 }
 
-export function ampType($: CheerioStatic): AmpType {
+export function ampType($: CheerioStatic): LintType {
   if ($("body amp-story[standalone]").length === 1) {
-    return AmpType.AmpStory;
+    return LintType.AmpStory;
   }
   // TODO Add tests for the other types
-  return AmpType.Amp;
+  return LintType.Amp;
 }

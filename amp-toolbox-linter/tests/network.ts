@@ -420,5 +420,52 @@ withFixture("sxgconneg3", () => {
   );
 });
 
+withFixture("sxgamppkg2", () => {
+  const expected = "PASS";
+  return assertFn(
+    `${linter.SxgAmppkgIsForwarded.name} - /amppkg/ is forwarded`,
+    runTest(linter.SxgAmppkgIsForwarded, "https://azei-package-test.com/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}, message: ${
+            res.message
+          }`
+  );
+});
+
+withFixture("sxgamppkg1", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${linter.SxgAmppkgIsForwarded.name} - /amppkg/ not forwarded (404)`,
+    runTest(
+      linter.SxgAmppkgIsForwarded,
+      "https://boundless-stealer.glitch.me/"
+    ),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}, message: ${
+            res.message
+          }`
+  );
+});
+
+withFixture("sxgamppkg3", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${
+      linter.SxgAmppkgIsForwarded.name
+    } - /amppkg/ not forwarded (wrong content-type)`,
+    runTest(linter.SxgAmppkgIsForwarded, "https://azei-package-test.com/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}, message: ${
+            res.message
+          }`
+  );
+});
+
 console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
-console.log(`1..33`);
+console.log(`1..36`);

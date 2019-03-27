@@ -369,5 +369,56 @@ withFixture("sxgvary4", () => {
   );
 });
 
+withFixture("sxgconneg1", () => {
+  const expected = "PASS";
+  return assertFn(
+    `${
+      linter.SxgContentNegotiationIsOk.name
+    } - application/signed-exchange supported`,
+    runTest(linter.SxgContentNegotiationIsOk, "https://azei-package-test.com/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}, message: ${
+            res.message
+          }`
+  );
+});
+
+withFixture("sxgconneg2", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${
+      linter.SxgContentNegotiationIsOk.name
+    } - application/signed-exchange not supported`,
+    runTest(
+      linter.SxgContentNegotiationIsOk,
+      "https://boundless-stealer.glitch.me/"
+    ),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}, message: ${
+            res.message
+          }`
+  );
+});
+
+withFixture("sxgconneg3", () => {
+  const expected = "FAIL";
+  return assertFn(
+    `${
+      linter.SxgContentNegotiationIsOk.name
+    } - application/signed-exchange incorrectly supported`,
+    runTest(linter.SxgContentNegotiationIsOk, "https://azei-package-test.com/"),
+    res =>
+      res.status === expected
+        ? ""
+        : `expected: ${expected}, actual: ${res.status}, message: ${
+            res.message
+          }`
+  );
+});
+
 console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
-console.log(`1..30`);
+console.log(`1..33`);

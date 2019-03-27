@@ -584,6 +584,49 @@ export async function SxgVaryOnAcceptAct({ url, headers }: Context) {
   return PASS();
 }
 
+export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
+  const res1 = await fetch(url, {
+    headers: Object.assign({ accept: "text/html" }, headers)
+  });
+  const hdr1 = res1.headers.get("content-type") || "";
+  if (hdr1.indexOf("application/signed-exchange") !== -1) {
+    return FAIL(
+      `application/signed-exchange incorrectly returned for accept: text/html`
+    );
+  }
+
+  const res2 = await fetch(url, {
+    headers: Object.assign(
+      { accept: "application/signed-exchange;v=b3" },
+      headers
+    )
+  });
+  const hdr2 = res2.headers.get("content-type") || "";
+  if (hdr2.indexOf("application/signed-exchange") !== -1) {
+    return FAIL(
+      `application/signed-exchange incorrectly returned for accept: application/signed-exchange;v=b3`
+    );
+  }
+
+  const res3 = await fetch(url, {
+    headers: Object.assign(
+      {
+        accept: "application/signed-exchange;v=b3",
+        "amp-cache-transform": `google;v="1"`
+      },
+      headers
+    )
+  });
+  const hdr3 = res3.headers.get("content-type") || "";
+  if (hdr3.indexOf("application/signed-exchange") === -1) {
+    return FAIL(
+      `application/signed-exchange not returned accept: application/signed-exchange;v=b3, amp-cache-transform, amp-cache-transform: google;v="1"`
+    );
+  }
+
+  return PASS();
+}
+
 export function cli(argv: string[]) {
   program
     .version(require("../package.json").version)

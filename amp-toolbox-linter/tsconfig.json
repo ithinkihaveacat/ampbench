@@ -1,8 +1,8 @@
 {
   // https://www.typescriptlang.org/docs/handbook/compiler-options.html
   "compilerOptions": {
-    "target": "es2016", // overwritten by @pika/pack
-    "module": "commonjs", // overwritten by @pika/pack
+    "target": "es2018", // required by @pika/pack
+    "module": "esnext", // required by @pika/pack
     "esModuleInterop": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "lib": ["es2016"]
   },
-  "exclude": ["node_modules", "pkg"]
+  "exclude": ["node_modules", "pkg", "tests"]
 }

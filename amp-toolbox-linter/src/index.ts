@@ -741,7 +741,7 @@ export function cli(argv: string[]) {
     .catch(e => console.error(`error:`, e));
 }
 
-function outputterForType(
+export function outputterForType(
   type: string
 ): (data: { [key: string]: Message | Message[] }) => string {
   function flatten(data: { [k: string]: Message | Message[] }): string[][] {
@@ -774,9 +774,10 @@ function outputterForType(
         const thead = `<tr><th>Name</th><th>Status</th><th>Message</th><tr>`;
         const tbody = res
           .map(r => r.map(td => `<td>${escape(td)}</td>`).join(""))
-          .map(r => `<tr>${r}</tr>`);
+          .map(r => `<tr>${r}</tr>`)
+          .join("");
         return [
-          `<table>`,
+          `<table class="amplint">`,
           `<thead>`,
           thead,
           `</thead>`,
@@ -792,7 +793,7 @@ function outputterForType(
   }
 }
 
-function testsForType(type: string, $: CheerioStatic) {
+export function testsForType(type: string, $: CheerioStatic) {
   const tests: Map<LintType, Array<Test | TestList>> = new Map();
   tests.set(LintType.Sxg, [
     SxgAmppkgIsForwarded,

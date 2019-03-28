@@ -1,6 +1,6 @@
 {
   "name": "amp-toolbox-linter",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "A linter for AMP documents",
   "repository": "https://github.com/ampproject/ampbench/amp-toolbox-linter",
   "license": "Apache-2.0",
@@ -22,8 +22,8 @@
   },
   "scripts": {
     "//": "See README for more information",
-    "build": "tsc",
-    "test": "cd tests && for t in helper.js local.js network.js ; do ( test -e $t || tsc ) && ( node $t | tap-parser -t ) || exit 1 ; done ; exit 0",
+    "build": "tsc --module commonjs --target es2018 --esModuleInterop --noImplicitAny --strictNullChecks {src,tests}/*.ts",
+    "test": "cd tests && for t in helper.js local.js network.js ; do ( test -e $t || $npm_execpath run build ) && ( node $t | tap-parser -t ) || exit 1 ; done ; exit 0",
     "lint": "prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
     "watch": "ls tsconfig.json tslint.json src/*.ts tests/*.ts | entr -c -s 'tsc ; date'",
     "package": "$npm_execpath run lint && pack build",
@@ -34,7 +34,7 @@
     "@pika/plugin-build-node": "^0.3.14",
     "@pika/plugin-build-types": "^0.3.14",
     "@pika/plugin-simple-bin": "^0.3.14",
-    "@pika/plugin-standard-pkg": "^0.3.14",
+    "@pika/plugin-ts-standard-pkg": "^0.3.14",
     "@types/cheerio": "^0.22.11",
     "@types/debug": "4.1.3",
     "@types/diff": "^4.0.2",
@@ -50,18 +50,10 @@
   "@pika/pack": {
     "pipeline": [
       [
-        "@pika/plugin-standard-pkg",
-        {
-          "exclude": [
-            "tests/*"
-          ]
-        }
+        "@pika/plugin-ts-standard-pkg"
       ],
       [
         "@pika/plugin-build-node"
-      ],
-      [
-        "@pika/plugin-build-types"
       ],
       [
         "@pika/plugin-simple-bin",

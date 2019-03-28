@@ -56,7 +56,9 @@ Installs dependencies. Run this first.
 
 #### `npm run build`
 
-Builds `*.js` from `*.ts`.
+Builds `*.js` from `*.ts`. Use this instead of `tsc` to ensure the correct
+config is in use. (Config **is** provided by `tsconfig.json`, but this is really
+only useful to `@pika/pack`.)
 
 #### `npm test`
 
@@ -74,6 +76,10 @@ Automatically rebuild `*.js` whenever `*.ts` changes.
 
 Generates npm-installable version of the package in `pkg/`. From another
 directory install via `npm install amp-toolbox-linter/pkg`.
+
+Note: this command will emit multiple warnings of the form 'Valid relative
+imports must include the ".js" file extension'; these [can be
+ignored](https://github.com/pikapkg/builders/issues/16).
 
 #### `npm run publish`
 

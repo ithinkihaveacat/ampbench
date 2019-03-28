@@ -92,4 +92,7 @@ Uses @pika's `pack publish` to publish to npm.
    generated automatically (via real network requests). Hopefully your test will
    fail.
 1. Fix the implementation, and re-run the test.
-1. Use `npm run publish` to publish the new version to npm.
+1. Use `npm run publish` to publish the new version to npm. (If you have
+   two-factor auto turned on, this might not work, even though no errors are
+   reported. To actually publish (or at least see the errors), run `npm publish`
+   from the `pkg` directory.)

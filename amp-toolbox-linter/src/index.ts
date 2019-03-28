@@ -8,6 +8,7 @@ import { createCacheUrl } from "amp-toolbox-cache-url";
 import { default as fetch, Request, RequestInit, Response } from "node-fetch";
 import cheerio from "cheerio";
 import program from "commander";
+import escape from "escape-html";
 
 import { validate } from "./validate";
 import { caches } from "./caches";
@@ -41,7 +42,7 @@ export interface ActualExpected {
 
 export interface Message {
   readonly status: string;
-  readonly message?: string | ActualExpected;
+  readonly message?: string;
 }
 
 export interface Context {
@@ -666,7 +667,7 @@ export function cli(argv: string[]) {
     .option(
       `-o, --output <string>`,
       "override output type",
-      /^(json|tsv)$/,
+      /^(json|tsv|html)$/,
       "json"
     )
     .on("--help", function() {
@@ -704,6 +705,8 @@ export function cli(argv: string[]) {
       return a;
     }, {});
 
+  // options is argv with "curl" and all -H flags removed (to pass to
+  // program.parse())
   const options = seq(0, argv.length - 1)
     .filter(n => argv[n] !== "curl" && argv[n] !== "-H" && argv[n - 1] !== "-H")
     .map(n => argv[n]);
@@ -741,25 +744,47 @@ export function cli(argv: string[]) {
 function outputterForType(
   type: string
 ): (data: { [key: string]: Message | Message[] }) => string {
+  function flatten(data: { [k: string]: Message | Message[] }): string[][] {
+    const rows: string[][] = [];
+    rows.push(["name", "status", "message"]);
+    for (const k of Object.keys(data).sort()) {
+      const v = data[k];
+      if (!isArray(v)) {
+        rows.push([k, v.status, v.message || ""]);
+      } else if (v.length == 0) {
+        rows.push([k, "PASS", ""]);
+      } else {
+        for (const vv of v) {
+          rows.push([k, vv.status, vv.message || ""]);
+        }
+      }
+    }
+    return rows;
+  }
   let sep = "\t";
   switch (type) {
     case "tsv":
-      return (data: { [k: string]: Message | Message[] }) => {
-        const rows = [];
-        rows.push(["name", "status", "message"].join(sep));
-        for (const k of Object.keys(data).sort()) {
-          const v = data[k];
-          if (!isArray(v)) {
-            rows.push([k, v.status, v.message].join(sep));
-          } else if (v.length == 0) {
-            rows.push([k, "PASS"].join(sep));
-          } else {
-            for (const vv of v) {
-              rows.push([k, vv.status, vv.message].join(sep));
-            }
-          }
-        }
-        return rows.join("\n");
+      return data =>
+        flatten(data)
+          .map(l => l.join(sep))
+          .join("\n");
+    case "html":
+      return data => {
+        const res = flatten(data).splice(1);
+        const thead = `<tr><th>Name</th><th>Status</th><th>Message</th><tr>`;
+        const tbody = res
+          .map(r => r.map(td => `<td>${escape(td)}</td>`).join(""))
+          .map(r => `<tr>${r}</tr>`);
+        return [
+          `<table>`,
+          `<thead>`,
+          thead,
+          `</thead>`,
+          `<tbody>`,
+          tbody,
+          `</tbody>`,
+          `</table>`
+        ].join("\n");
       };
     case "json":
     default:

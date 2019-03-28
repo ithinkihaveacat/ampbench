@@ -1,6 +1,0 @@
-- Make results persistent
-  - Generate URL with "url" query string parameter
-  - Share via share component
-  - Do some rendering on server side
-- Loader would be nice
-- Support V1 format

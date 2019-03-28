@@ -37,7 +37,7 @@ export default (serverOrigin: string) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Expose-Headers", [
-      "AMP-Access-Control-Allow-Source-Origin",
+      "AMP-Access-Control-Allow-Source-Origin"
     ]);
     res.setHeader("AMP-Access-Control-Allow-Source-Origin", sourceOrigin);
     next();

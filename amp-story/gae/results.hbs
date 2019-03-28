@@ -960,6 +960,14 @@
       padding: 0;
       margin: 0
     }
+
+    table.amplint td {
+      vertical-align: baseline;
+    }
+
+    table.amplint th {
+      text-align: left;
+    }
   </style>
 </head>
 
@@ -969,16 +977,14 @@
       <main id="main" class="site-main">
         <article class="entry">
           <header class="entry-header">
-            <h1 class="entry-title">AMP Toolbox Linter</h1>
+            <h1 class="entry-title">Results</h1>
           </header>
           <div class="entry-content">
 
-            <form role="search" method="get" class="search-form" action="/lint" target="_top">
-              <label>
-                <span class="screen-reader-text">Search for:</span>
-                <input type="url" size="40" type="search" class="search-field" placeholder="URL …" value=""
-                  name="url"></label>
-              <input type="submit" class="search-submit" value="Go"></form>
+            <p>Results for <a href="{{url}}">{{url}}</a>:</p>
+
+            {{{body}}}
+
           </div>
         </article>
       </main>

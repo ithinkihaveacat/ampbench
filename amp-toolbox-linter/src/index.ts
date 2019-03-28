@@ -2,6 +2,7 @@ import { basename } from "path";
 import { parse, format, URL } from "url";
 import { readFileSync } from "fs";
 import { stringify } from "querystring";
+import { isArray } from "util";
 
 import { createCacheUrl } from "amp-toolbox-cache-url";
 import { default as fetch, Request, RequestInit, Response } from "node-fetch";
@@ -65,13 +66,13 @@ const S_WARN = "WARN";
 const S_INFO = "INFO";
 
 export const PASS = (): Promise<Message> => Promise.resolve({ status: S_PASS });
-export const FAIL = (s: string | ActualExpected) => {
+export const FAIL = (s: string) => {
   return Promise.resolve({ status: S_FAIL, message: s });
 };
-export const WARN = (s: string | ActualExpected) => {
+export const WARN = (s: string) => {
   return Promise.resolve({ status: S_WARN, message: s });
 };
-export const INFO = (s: string | ActualExpected) => {
+export const INFO = (s: string) => {
   return Promise.resolve({ status: S_INFO, message: s });
 };
 
@@ -97,10 +98,7 @@ export async function LinkRelCanonicalIsOk(context: Context) {
   const s1 = absoluteUrl(canonical, url);
   // does canonical match url?
   if (url !== s1) {
-    return FAIL({
-      actual: s1,
-      expected: url
-    });
+    return FAIL(`actual: ${s1}, expected: ${url}`);
   }
   // does url redirect?
   try {
@@ -108,10 +106,7 @@ export async function LinkRelCanonicalIsOk(context: Context) {
     if (s2 === url) {
       return PASS();
     } else {
-      return FAIL({
-        actual: s2,
-        expected: url
-      });
+      return FAIL(`actual: ${s2}, expected: ${url}`);
     }
   } catch (e) {
     return FAIL(`couldn't retrieve canonical ${url}`);
@@ -663,10 +658,16 @@ export function cli(argv: string[]) {
     .version(require("../package.json").version)
     .usage(`amplint [options] URL|copy_as_cURL`)
     .option(
-      `-t, --type <string>`,
-      "override input type",
+      `-t, --test <string>`,
+      "override test type",
       /^(auto|sxg|amp|ampstory)$/,
       "auto"
+    )
+    .option(
+      `-o, --output <string>`,
+      "override output type",
+      /^(json|tsv)$/,
+      "json"
     )
     .on("--help", function() {
       console.log("");
@@ -725,13 +726,45 @@ export function cli(argv: string[]) {
   })();
 
   return body
-    .then(b => cheerio.load(b))
-    .then($ => {
-      const tests = testsForType(program.type, $);
+    .then(b => {
+      const $ = cheerio.load(b);
+      const tests = testsForType(program.test, $);
       return lint(tests, { $, headers, url });
     })
-    .then(r => console.log(JSON.stringify(r, null, 2)))
-    .catch(e => console.error(`error: ${e}`));
+    .then(r => {
+      const outputter = outputterForType(program.output);
+      console.log(outputter(r));
+    })
+    .catch(e => console.error(`error:`, e));
+}
+
+function outputterForType(
+  type: string
+): (data: { [key: string]: Message | Message[] }) => string {
+  let sep = "\t";
+  switch (type) {
+    case "tsv":
+      return (data: { [k: string]: Message | Message[] }) => {
+        const rows = [];
+        rows.push(["name", "status", "message"].join(sep));
+        for (const k of Object.keys(data).sort()) {
+          const v = data[k];
+          if (!isArray(v)) {
+            rows.push([k, v.status, v.message].join(sep));
+          } else if (v.length == 0) {
+            rows.push([k, "PASS"].join(sep));
+          } else {
+            for (const vv of v) {
+              rows.push([k, vv.status, vv.message].join(sep));
+            }
+          }
+        }
+        return rows.join("\n");
+      };
+    case "json":
+    default:
+      return (data: any) => JSON.stringify(data, null, 2);
+  }
 }
 
 function testsForType(type: string, $: CheerioStatic) {
@@ -774,16 +807,15 @@ function testsForType(type: string, $: CheerioStatic) {
     case "ampstory":
       return tests.get(LintType.AmpStory) || [];
     case "auto":
-      return tests.get(ampType($)) || [];
     default:
-      return [];
+      return tests.get(ampType($)) || [];
   }
 }
 
 export async function lint(
   tests: Array<Test | TestList>,
   context: Context
-): Promise<{ [key: string]: Message }> {
+): Promise<{ [key: string]: Message | Message[] }> {
   const res = await Promise.all(
     // We need to cast f() to the (incorrect) union type (Test & TestList)
     // because typescript cannot "synthesize an intersectional call signature

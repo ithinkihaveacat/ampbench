@@ -303,7 +303,7 @@ export function StoryRuntimeIsV1({ $ }: Context) {
   const isV1 =
     $("script[src='https://cdn.ampproject.org/v0/amp-story-1.0.js']").length >
     0;
-  return isV1 ? PASS() : WARN("amp-story-1.0.js not used (probably 0.1?)");
+  return isV1 ? PASS() : FAIL("amp-story-1.0.js not used (probably 0.1?)");
 }
 
 export function StoryMetadataIsV1({ $ }: Context) {

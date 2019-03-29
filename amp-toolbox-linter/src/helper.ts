@@ -1,6 +1,6 @@
 import { LintType } from ".";
 
-interface InlineMetadata {
+export interface InlineMetadata {
   title: string;
   publisher: string;
   "publisher-logo-src": string;

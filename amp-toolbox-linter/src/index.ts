@@ -24,8 +24,10 @@ import {
   schemaMetadata,
   inlineMetadata,
   corsEndpoints,
-  ampType
+  ampType,
+  InlineMetadata
 } from "./helper";
+import { ImageSize } from "probe-image-size";
 
 export enum LintType {
   Amp,
@@ -216,11 +218,7 @@ function canXhrSameOrigin(context: Context, xhrUrl: string) {
   xhrUrl = absoluteUrl(xhrUrl, context.url)!;
   const sourceOrigin = buildSourceOrigin(context.url);
 
-  const headers = Object.assign(
-    {},
-    { "amp-same-origin": "true" },
-    context.headers
-  );
+  const headers = Object.assign({ "amp-same-origin": "true" }, context.headers);
 
   const curl = fetchToCurl(addSourceOrigin(xhrUrl, sourceOrigin), { headers });
 
@@ -254,13 +252,12 @@ async function canXhrCache(
       FAIL(`can't XHR [${xhrUrl}]: ${e.message} [debug: ${curl}]`)
     );
 }
-
 export function BookendExists(context: Context) {
   const { $ } = context;
   const s1 = $("amp-story amp-story-bookend").attr("src");
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
-  return bookendSrc ? PASS() : WARN("no bookend found");
+  return bookendSrc ? PASS() : WARN("<amp-story-bookend> not foundd");
 }
 
 export function BookendAppearsOnOrigin(context: Context) {
@@ -269,7 +266,7 @@ export function BookendAppearsOnOrigin(context: Context) {
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
   if (!bookendSrc) {
-    return WARN("no bookend specified");
+    return WARN("<amp-story-bookend> not found");
   }
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
@@ -282,7 +279,7 @@ export function BookendAppearsOnCache(context: Context) {
   const s2 = $("amp-story").attr("bookend-config-src");
   const bookendSrc = s1 || s2;
   if (!bookendSrc) {
-    return WARN("amp-story-bookend missing");
+    return WARN("<amp-story-bookend> not found");
   }
   const bookendUrl = absoluteUrl(bookendSrc, url);
 
@@ -363,107 +360,83 @@ export function StoryIsMostlyText({ $ }: Context) {
   }
 }
 
+// Requirements are from
+// https://github.com/ampproject/amphtml/blob/master/extensions/amp-story/amp-story.md#new-metadata-requirements.
 export async function StoryMetadataThumbnailsAreOk(context: Context) {
-  const $ = context.$;
-  async function isSquare(url: string | undefined) {
-    if (!url) {
-      return false;
-    }
-    const { width, height } = await dimensions(
-      context,
-      absoluteUrl(url, context.url)!
-    );
+  function isSquare({ width, height }: ImageSize) {
     return width === height;
   }
-  async function isPortrait(url: string | undefined) {
-    if (!url) {
-      return false;
-    }
-    const { width, height } = await dimensions(
-      context,
-      absoluteUrl(url, context.url)!
-    );
+  function isPortrait({ width, height }: ImageSize) {
     return width > 0.74 * height && width < 0.76 * height;
   }
-  async function isLandscape(url: string | undefined) {
-    if (!url) {
-      return false;
-    }
-    const { width, height } = await dimensions(
-      context,
-      absoluteUrl(url, context.url)!
-    );
+  function isLandscape({ width, height }: ImageSize) {
     return height > 0.74 * width && height < 0.76 * width;
   }
-  const metadata = inlineMetadata($);
+  function isRaster({ mime }: ImageSize) {
+    return ["image/jpeg", "image/gif", "image/png"].includes(mime);
+  }
+  function isAtLeast96x96({ width, height }: ImageSize) {
+    return width >= 96 && height >= 96;
+  }
+  function isAtLeast928x928({ width, height }: ImageSize) {
+    return width >= 928 && height >= 928;
+  }
+  function isAtLeast696x928({ width, height }: ImageSize) {
+    return width >= 696 && height >= 928;
+  }
+  function isAtLeast928x696({ width, height }: ImageSize) {
+    return width >= 928 && height >= 696;
+  }
+  const metadata = inlineMetadata(context.$);
 
-  const res: Array<Promise<Message>> = [];
-
-  res.push(
-    (async () => {
-      const k = "publisher-logo-src";
-      const v = metadata[k];
-      try {
-        const r = await isSquare(v);
-        return r
-          ? PASS()
-          : FAIL(`[${k}] (${v}) is missing or not square (1:1)`);
-      } catch (e) {
-        return e.message == "unrecognized file format"
-          ? PASS()
-          : FAIL(`[${k}] (${v}) status not 200 error: ${JSON.stringify(e)}`);
-      }
-    })()
-  );
-
-  res.push(
-    (async () => {
-      const k = "poster-portrait-src";
-      const v = metadata[k];
-      try {
-        const r = await isPortrait(v);
-        return r
-          ? PASS()
-          : FAIL(`[${k}] (${v}) is missing or not portrait (3:4)`);
-      } catch (e) {
-        return e.message == "unrecognized file format"
-          ? PASS()
-          : FAIL(`[${k}] (${v}) status not 200`);
-      }
-    })()
-  );
-
-  (() => {
-    const k = "poster-square-src";
-    const v = metadata[k];
-    if (v) {
-      res.push(
-        isSquare(v).then(
-          r => (r ? PASS() : FAIL(`[${k}] (${v}) is not square (1x1)`)),
-          e =>
-            e.message == "unrecognized file format"
-              ? PASS()
-              : FAIL(`[${k}] (${v}) status not 200`)
-        )
-      );
+  async function assert(
+    attr: keyof InlineMetadata,
+    isMandatory: boolean,
+    expected: Array<(info: ImageSize) => boolean>
+  ): Promise<Message> {
+    const url = metadata[attr];
+    if (!url) {
+      return isMandatory ? FAIL(`[${attr}] is missing`) : PASS();
     }
-  })();
-
-  (() => {
-    const k = "poster-landscape-src";
-    const v = metadata[k];
-    if (v) {
-      res.push(
-        isLandscape(v).then(
-          r => (r ? PASS() : FAIL(`[${k}] (${v}) is not landscape (4:3)`)),
-          e =>
-            e.message == "unrecognized file format"
-              ? PASS()
-              : FAIL(`[${k}] (${v}) status not 200`)
-        )
-      );
+    try {
+      const info = await dimensions(context, url);
+      const failed = expected.filter(fn => !fn(info)).map(fn => fn.name);
+      return failed.length === 0
+        ? PASS()
+        : FAIL(
+            `[${attr} = ${JSON.stringify({
+              url: url,
+              width: info.width,
+              height: info.height,
+              mime: info.mime
+            })}] failed [${failed.join(", ")}]`
+          );
+    } catch (e) {
+      switch (e.message) {
+        case "unrecognized file format":
+          return FAIL(`[${attr}] (${url}) unrecognized file format`);
+        case "bad status code: 404":
+          return FAIL(`[${attr}] (${url}) 404 file not found`);
+        default:
+          return FAIL(`[${attr}] (${url}) error: ${JSON.stringify(e)}`);
+      }
     }
-  })();
+  }
+
+  const res = [
+    assert("publisher-logo-src", true, [isRaster, isSquare, isAtLeast96x96]),
+    assert("poster-portrait-src", true, [
+      isRaster,
+      isPortrait,
+      isAtLeast696x928
+    ]),
+    assert("poster-square-src", false, [isRaster, isSquare, isAtLeast928x928]),
+    assert("poster-landscape-src", false, [
+      isRaster,
+      isLandscape,
+      isAtLeast928x696
+    ])
+  ];
 
   return (await Promise.all(res)).filter(notPass);
 }
@@ -550,9 +523,9 @@ export async function AmpImgAmpPixelPreferred(context: Context) {
 
 export async function EndpointsAreAccessibleFromOrigin(context: Context) {
   const e = corsEndpoints(context.$);
-  return (await Promise.all(e.map(s => canXhrSameOrigin(context, s)))).filter(
-    notPass
-  );
+  return (await Promise.all(
+    e.map(url => canXhrSameOrigin(context, absoluteUrl(url, context.url) || ""))
+  )).filter(notPass);
 }
 
 export async function EndpointsAreAccessibleFromCache(context: Context) {
@@ -563,7 +536,7 @@ export async function EndpointsAreAccessibleFromCache(context: Context) {
   const product = cartesian(e, (await caches()).map(c => c.cacheDomain));
   return (await Promise.all(
     product.map(([xhrUrl, cacheSuffix]) =>
-      canXhrCache(context, xhrUrl, cacheSuffix)
+      canXhrCache(context, absoluteUrl(xhrUrl, context.url) || "", cacheSuffix)
     )
   )).filter(notPass);
 }

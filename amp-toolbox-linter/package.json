@@ -25,7 +25,7 @@
     "build": "tsc --module commonjs --target es2018 --esModuleInterop --noImplicitAny --strictNullChecks src/*.ts tests/*.ts",
     "test": "cd tests && for t in helper.js local.js network.js ; do ( test -e $t || $npm_execpath run build ) && ( node $t | tap-parser -t ) || exit 1 ; done ; exit 0",
     "lint": "prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
-    "watch": "ls tsconfig.json tslint.json src/*.ts tests/*.ts | entr -c -s '$npm_execpath run build ; date'",
+    "watch": "ls tsconfig.json tslint.json src/*.ts tests/*.ts | entr -c -s 'clear ; $npm_execpath run build ; date'",
     "package": "$npm_execpath run lint && pack build",
     "publish": "pack publish --any-branch"
   },

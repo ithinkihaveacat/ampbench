@@ -14,13 +14,15 @@ const PASS = linter.PASS();
 
 withFixture("thumbnails1", () =>
   assertFn<linter.Message[]>(
-    `${linter.StoryMetadataThumbnailsAreOk.name} - correctly sized`,
+    `${linter.StoryMetadataThumbnailsAreOk.name} - too small`,
     runTestList(
       linter.StoryMetadataThumbnailsAreOk,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     actual => {
-      return actual.length === 0 ? "" : "expected no errors";
+      return actual.length === 2
+        ? ""
+        : `expected no errors, got ${JSON.stringify(actual)}`;
     }
   )
 );
@@ -42,7 +44,7 @@ withFixture("thumbnails3", () =>
       linter.StoryMetadataThumbnailsAreOk.name
     } - poster-portrait-src not found`,
     runTestList(linter.StoryMetadataThumbnailsAreOk, "http://localhost:5000/"),
-    "not 200"
+    "file not found"
   )
 );
 

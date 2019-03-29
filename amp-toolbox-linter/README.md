@@ -57,8 +57,9 @@ Installs dependencies. Run this first.
 #### `npm run build`
 
 Builds `*.js` from `*.ts`. Use this instead of `tsc` to ensure the correct
-config is in use. (Config **is** provided by `tsconfig.json`, but this is really
-only useful to `@pika/pack`.)
+config (via command-line arguments) is in use. (`@pika/plugin-ts-standard-pkg`
+needs slightly different config, but it's essentially hardcoded to read from
+`tsconfig.json`, so we need to use that for pika.)
 
 #### `npm test`
 

@@ -500,6 +500,15 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
   }
 
   return (await Promise.all(($("amp-img")
+    .filter(
+      // filter out <amp-img> elements that are the first child of an
+      // <amp-story-grid-layer template="fill"> (for these, height/width is
+      // ignored).
+      (_, e) =>
+        !$(e)
+          .parent()
+          .is("amp-story-grid-layer[template=fill]")
+    )
     .map((_, e) => {
       const src = $(e).attr("src");
       const expectedHeight = parseInt($(e).attr("height"), 10);

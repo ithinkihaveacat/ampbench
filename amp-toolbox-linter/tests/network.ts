@@ -271,6 +271,20 @@ withFixture("ampimg3", () =>
   )
 );
 
+withFixture("ampimg4", () =>
+  assertFn<linter.Message[]>(
+    `${
+      linter.AmpImgHeightWidthIsOk.name
+    } - height/width are incorrect, but ignored`,
+    runTestList(linter.AmpImgHeightWidthIsOk, "https://pyrite-coil.glitch.me"),
+    res => {
+      return res.length === 0
+        ? ""
+        : `expected 0 failures, got ${JSON.stringify(res)}`;
+    }
+  )
+);
+
 withFixture("cors1", () =>
   assertFn<linter.Message[]>(
     `${linter.EndpointsAreAccessibleFromOrigin.name} - all headers correct`,
@@ -470,4 +484,4 @@ withFixture("sxgamppkg3", () => {
 });
 
 console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
-console.log(`1..36`);
+console.log(`1..37`);

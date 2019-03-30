@@ -412,13 +412,14 @@ export async function StoryMetadataThumbnailsAreOk(context: Context) {
             })}] failed [${failed.join(", ")}]`
           );
     } catch (e) {
+      const s = absoluteUrl(url, context.url);
       switch (e.message) {
         case "unrecognized file format":
-          return FAIL(`[${attr}] (${url}) unrecognized file format`);
+          return FAIL(`[${attr}] (${s}) unrecognized file format`);
         case "bad status code: 404":
-          return FAIL(`[${attr}] (${url}) 404 file not found`);
+          return FAIL(`[${attr}] (${s}) 404 file not found`);
         default:
-          return FAIL(`[${attr}] (${url}) error: ${JSON.stringify(e)}`);
+          return FAIL(`[${attr}] (${s}) error: ${JSON.stringify(e)}`);
       }
     }
   }

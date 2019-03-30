@@ -464,7 +464,7 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
       if (Math.abs(actualRatio - expectedRatio) > 0.015) {
         const actualString = `${actualWidth}/${actualHeight} = ${actualRatio}`;
         const expectedString = `${expectedWidth}/${expectedHeight} = ${expectedRatio}`;
-        return FAIL(
+        return WARN(
           `[${src}]: actual ratio [${actualString}] does not match specified [${expectedString}]`
         );
       }

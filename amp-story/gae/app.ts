@@ -40,6 +40,11 @@ const UA_GOOGLEBOT_MOBILE = [
   "(compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 ].join(" ");
 
+const UA_CHROME_MOBILE = [
+  "Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012) AppleWebKit/537.36",
+  "(KHTML, like Gecko) Chrome/73.0.3683.86 Mobile Safari/537.36"
+].join(" ");
+
 const ORIGIN =
   process.env.ORIGIN || `https://${process.env.PROJECT_ID}.appspot.com`;
 
@@ -60,6 +65,19 @@ const INDEX = (() => {
     boilerplate: BOILERPLATE
   });
 })();
+
+function fetchToCurl(
+  url: string,
+  init: { headers?: { [k: string]: string } } = { headers: {} }
+) {
+  const headers = init.headers || {};
+
+  const h = Object.keys(headers)
+    .map(k => `-H '${k}: ${headers[k]}'`)
+    .join(" ");
+
+  return `curl -sS -i ${h} '${url}'`;
+}
 
 const app = express();
 
@@ -95,7 +113,8 @@ app.get("/lint", async (req, res, next) => {
     res.end();
     return;
   }
-  const headers = { "user-agent": UA_GOOGLEBOT_MOBILE };
+  // wapo returns 403 forbidden if UA is set to UA_GOOGLEBOT_MOBILE
+  const headers = { "user-agent": UA_CHROME_MOBILE, cookie: "wp_gdpr=1|1" };
   const body = (() => {
     return fetch(url, { headers }).then(
       r =>

@@ -14,7 +14,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@types/cheerio": "^0.22.11",
-    "amp-toolbox-linter": "0.0.8",
+    "amp-toolbox-linter": "0.0.9",
     "amphtml-validator": "^1.0.23",
     "cheerio": "^1.0.0-rc.2",
     "debug": "^4.1.1",
@@ -30,7 +30,7 @@
     "@types/handlebars": "^4.1.0",
     "@types/node-fetch": "^2.1.7",
     "tslint": "^5.14.0",
-    "typescript": "^3.3.4000"
+    "typescript": "^3.4.1"
   },
   "prettier": {}
 }

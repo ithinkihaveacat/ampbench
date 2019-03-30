@@ -1,6 +1,6 @@
 {
   "name": "amp-toolbox-linter",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "A linter for AMP documents",
   "repository": "https://github.com/ampproject/ampbench/amp-toolbox-linter",
   "license": "Apache-2.0",
@@ -45,7 +45,7 @@
     "nock": "^10.0.6",
     "prettier": "^1.16.4",
     "tap-parser": "^9.3.1",
-    "typescript": "^3.3.4000"
+    "typescript": "^3.4.1"
   },
   "@pika/pack": {
     "pipeline": [

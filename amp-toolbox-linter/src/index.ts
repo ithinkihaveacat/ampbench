@@ -736,19 +736,19 @@ export function cli(argv: string[]) {
     .option(
       `-f, --force <string>`,
       "override test type",
-      /^(auto|sxg|amp|ampstory)$/,
+      /^(auto|sxg|amp|ampstory)$/i,
       "auto"
     )
     .option(
       `-t, --format <string>`,
       "override output format",
-      /^(text|json|tsv|html)$/,
+      /^(text|json|tsv|html)$/i,
       "text"
     )
     .option(
       `-A, --user-agent <string>`,
       "user agent string",
-      /^(googlebot_desktop|googlebot_mobile|chrome_desktop|chrome_mobile)$/,
+      /^(googlebot_desktop|googlebot_mobile|chrome_desktop|chrome_mobile)$/i,
       "googlebot_mobile"
     )
     .on("--help", function() {
@@ -786,8 +786,6 @@ export function cli(argv: string[]) {
       return a;
     }, {});
 
-  headers["user-agent"] = UA[program.userAgent as keyof typeof UA];
-
   // options is argv with "curl" and all -H flags removed (to pass to
   // program.parse())
   const options = seq(0, argv.length - 1)
@@ -796,6 +794,11 @@ export function cli(argv: string[]) {
 
   program.parse(options);
   const url = program.args[0];
+  if (!url) {
+    program.help();
+  }
+
+  headers["user-agent"] = UA[program.userAgent as keyof typeof UA];
 
   const body = (() => {
     if (url === "-") {

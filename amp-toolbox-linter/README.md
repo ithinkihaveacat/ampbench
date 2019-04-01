@@ -46,6 +46,14 @@ const context = {
 linter.MetaCharsetIsFirst(context).then(console.log);
 ```
 
+## `dump-signedexchange`
+
+One test has a dependency on the `dump-signedexchange` go binary. If this is
+available ([installation
+instructions](https://github.com/WICG/webpackage/tree/master/go/signedexchange#installation))
+at additional check of the `application/signed-exchange` response will be
+performed.
+
 ## Development
 
 ### Commands

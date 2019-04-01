@@ -681,7 +681,7 @@ export async function SxgDumpSignedExchangeVerify({ url, headers }: Context) {
   ) {
     return FAIL(`[${url}] is not valid SXG [${sxg}] [debug: ${debug}]`);
   } else {
-    return PASS(JSON.stringify(sxg));
+    return PASS();
   }
 }
 

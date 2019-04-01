@@ -713,8 +713,8 @@ export function cli(argv: string[]) {
     .option(
       `-t, --type <string>`,
       "override output type",
-      /^(json|tsv|html)$/,
-      "json"
+      /^(json|tsv|html|text)$/,
+      "text"
     )
     .on("--help", function() {
       console.log("");
@@ -834,8 +834,18 @@ export function outputterForType(
         ].join("\n");
       };
     case "json":
-    default:
       return (data: any) => JSON.stringify(data, null, 2);
+    case "text":
+    default:
+      return data =>
+        flatten(data)
+          .splice(1)
+          .map(l =>
+            l[1] == "PASS"
+              ? `${l[0]} (${l[1]})\n`
+              : `${l[0]} (${l[1]})\n\n  ${l[2]}\n`
+          )
+          .join("\n");
   }
 }
 

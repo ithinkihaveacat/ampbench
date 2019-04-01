@@ -1,6 +1,6 @@
 {
   "name": "amp-toolbox-linter",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "A linter for AMP documents",
   "repository": "https://github.com/ampproject/ampbench/amp-toolbox-linter",
   "license": "Apache-2.0",
@@ -28,7 +28,8 @@
     "lint": "prettier --check 'src/**/*.ts' 'tests/**/*.ts'",
     "watch": "ls tsconfig.json tslint.json src/*.ts tests/*.ts | entr -c -s 'clear ; $npm_execpath run build ; date'",
     "package": "$npm_execpath run lint && pack build",
-    "publish": "pack publish --any-branch"
+    "publish": "pack publish --any-branch",
+    "cache": "cd src && curl -sS --remote-name-all https://cdn.ampproject.org/v0/validator.js && curl -sS --remote-name-all https://cdn.ampproject.org/caches.json"
   },
   "devDependencies": {
     "@pika/pack": "^0.3.6",

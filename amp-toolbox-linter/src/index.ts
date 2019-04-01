@@ -9,6 +9,7 @@ import { default as fetch, Request, RequestInit, Response } from "node-fetch";
 import cheerio from "cheerio";
 import program from "commander";
 import escape from "escape-html";
+import execa from "execa";
 
 import { validate } from "./validate";
 import { caches } from "./caches";
@@ -68,7 +69,8 @@ const S_FAIL = "FAIL";
 const S_WARN = "WARN";
 const S_INFO = "INFO";
 
-export const PASS = (): Promise<Message> => Promise.resolve({ status: S_PASS });
+export const PASS = (s?: string): Promise<Message> =>
+  Promise.resolve({ status: S_PASS, message: s });
 export const FAIL = (s: string) => {
   return Promise.resolve({ status: S_FAIL, message: s });
 };
@@ -225,8 +227,9 @@ function canXhrSameOrigin(context: Context, xhrUrl: string) {
   return fetch(addSourceOrigin(xhrUrl, sourceOrigin), { headers })
     .then(isStatusOk)
     .then(isJson)
-    .then(PASS, (e: Error) =>
-      FAIL(`can't XHR [${xhrUrl}]: ${e.message} [debug: ${curl}]`)
+    .then(
+      () => PASS(),
+      (e: Error) => FAIL(`can't XHR [${xhrUrl}]: ${e.message} [debug: ${curl}]`)
     );
 }
 
@@ -248,8 +251,9 @@ async function canXhrCache(
     .then(isStatusOk)
     .then(isAccessControlHeaders(origin, sourceOrigin))
     .then(isJson)
-    .then(PASS, e =>
-      FAIL(`can't XHR [${xhrUrl}]: ${e.message} [debug: ${curl}]`)
+    .then(
+      () => PASS(),
+      e => FAIL(`can't XHR [${xhrUrl}]: ${e.message} [debug: ${curl}]`)
     );
 }
 export function BookendExists(context: Context) {
@@ -557,13 +561,13 @@ export async function SxgVaryOnAcceptAct({ url, headers }: Context) {
   const vary = ("" + res.headers.get("vary"))
     .split(",")
     .map(s => s.toLowerCase().trim());
-  if (vary.length == 0) return FAIL(`[Vary] header is missing [${debug}]`);
+  if (vary.length == 0) return FAIL(`[vary] header is missing [${debug}]`);
   if (!vary.includes("amp-cache-transform"))
     return FAIL(
-      `[Vary] header is missing value [AMP-Cache-Transform] [${debug}]`
+      `[vary] header is missing value [amp-cache-transform] [${debug}]`
     );
   if (!vary.includes("accept"))
-    return FAIL(`[Vary] header is missing value [Accept] [${debug}]`);
+    return FAIL(`[vary] header is missing value [accept] [${debug}]`);
   return PASS();
 }
 
@@ -575,7 +579,7 @@ export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
   const hdr1 = res1.headers.get("content-type") || "";
   if (hdr1.indexOf("application/signed-exchange") !== -1) {
     return FAIL(
-      `[Content-Type: application/signed-exchange] incorrectly returned for [Accept: text/html] [debug: ${fetchToCurl(
+      `[content-type: application/signed-exchange] incorrectly returned for [accept: text/html] [debug: ${fetchToCurl(
         url,
         opt1
       )}]`
@@ -592,7 +596,7 @@ export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
   const hdr2 = res2.headers.get("content-type") || "";
   if (hdr2.indexOf("application/signed-exchange") !== -1) {
     return FAIL(
-      `[Content-Type: application/signed-exchange] incorrectly returned for [Accept: application/signed-exchange;v=b3] [debug: ${fetchToCurl(
+      `[content-type: application/signed-exchange] incorrectly returned for [accept: application/signed-exchange;v=b3] [debug: ${fetchToCurl(
         url,
         opt2
       )}]`
@@ -612,7 +616,7 @@ export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
   const hdr3 = res3.headers.get("content-type") || "";
   if (hdr3.indexOf("application/signed-exchange") === -1) {
     return FAIL(
-      `[Content-Type: application/signed-exchange] not returned for [Accept: application/signed-exchange;v=b3], [AMP-Cache-Transform: google;v="1"] [debug: ${fetchToCurl(
+      `[content-type: application/signed-exchange] not returned for [Accept: application/signed-exchange;v=b3], [amp-cache-transform: google;v="1"] [debug: ${fetchToCurl(
         url,
         opt3
       )}]`
@@ -620,6 +624,65 @@ export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
   }
 
   return PASS();
+}
+
+export async function SxgDumpSignedExchangeVerify({ url, headers }: Context) {
+  const opt = {
+    headers: Object.assign(
+      {
+        accept: "application/signed-exchange;v=b3",
+        "amp-cache-transform": `google;v="1"`
+      },
+      headers
+    )
+  };
+  const res = await fetch(url, opt);
+  const hdr = res.headers.get("content-type") || "";
+  if (hdr.indexOf("application/signed-exchange") === -1) {
+    return FAIL(
+      `[content-type: application/signed-exchange] not returned for [accept: application/signed-exchange;v=b3], [amp-cache-transform: google;v="1"] [debug: ${fetchToCurl(
+        url,
+        opt
+      )}]`
+    );
+  }
+  const body = await res.buffer();
+
+  const CMD = `dump-signedexchange`;
+  const ARGS = [`-verify`];
+
+  let sxg;
+  try {
+    sxg = await execa(CMD, ARGS, { input: body }).then(spawn => {
+      const { stdout } = spawn;
+      let m: ReturnType<typeof String.prototype.match>;
+      m = stdout.match(/^The exchange has valid signature.$/m);
+      const isValid = !!m;
+      m = stdout.match(/^format version: (\S+)$/m);
+      const version = m && m[1];
+      m = stdout.match(/^  uri: (\S+)$/m);
+      const uri = m && m[1];
+      m = stdout.match(/^  status: (\S+)$/m);
+      const status = m && parseInt(m[1], 10);
+      return { isValid, version, uri, status };
+    });
+  } catch (e) {
+    return WARN(
+      `not testing: couldn't execute [${e.cmd}] (not installed? not in PATH?)`
+    );
+  }
+
+  const debug = `${fetchToCurl(url, opt)} | ${CMD} ${ARGS.join(" ")}`;
+
+  if (
+    !sxg.isValid ||
+    (sxg.uri !== url && sxg.version !== "1b3") ||
+    sxg.status !== 200
+  ) {
+    return FAIL(`[${url}] is not valid SXG [${sxg}] [debug: ${debug}]`);
+  } else {
+    return PASS(JSON.stringify(sxg));
+  }
 }
 
 export async function SxgAmppkgIsForwarded({ url, headers }: Context) {
@@ -642,13 +705,13 @@ export function cli(argv: string[]) {
     .version(require("../package.json").version)
     .usage(`amplint [options] URL|copy_as_cURL`)
     .option(
-      `-t, --test <string>`,
+      `-s, --as <string>`,
       "override test type",
       /^(auto|sxg|amp|ampstory)$/,
       "auto"
     )
     .option(
-      `-o, --output <string>`,
+      `-t, --type <string>`,
       "override output type",
       /^(json|tsv|html)$/,
       "json"
@@ -714,11 +777,11 @@ export function cli(argv: string[]) {
   return body
     .then(b => {
       const $ = cheerio.load(b);
-      const tests = testsForType(program.test, $);
+      const tests = testsForType(program.as, $);
       return lint(tests, { $, headers, url });
     })
     .then(r => {
-      const outputter = outputterForType(program.output);
+      const outputter = outputterForType(program.type);
       console.log(outputter(r));
     })
     .catch(e => console.error(`error:`, e));
@@ -781,7 +844,8 @@ export function testsForType(type: string, $: CheerioStatic) {
   tests.set(LintType.Sxg, [
     SxgAmppkgIsForwarded,
     SxgContentNegotiationIsOk,
-    SxgVaryOnAcceptAct
+    SxgVaryOnAcceptAct,
+    SxgDumpSignedExchangeVerify
   ]);
   tests.set(LintType.Amp, [
     IsValid,

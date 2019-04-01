@@ -15,7 +15,9 @@ declare module "probe-image-size" {
 declare module "amphtml-validator" {
   export function getInstance(
     s?: string
-  ): Promise<{ validateString: (s: string) => { status: string } }>;
+  ): Promise<{
+    validateString: (s: string) => { status: string; errors: any[] };
+  }>;
 }
 
 declare module "amp-toolbox-cache-url" {

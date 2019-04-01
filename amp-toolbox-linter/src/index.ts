@@ -38,6 +38,31 @@ export enum LintType {
   Sxg
 }
 
+const UA = {
+  googlebot_mobile: [
+    "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36",
+    "(KHTML, like Gecko) Chrome/41.0.2272.96 Mobile Safari/537.36",
+    "(compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+  ].join(" "),
+  googlebot_desktop: [
+    "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible;",
+    "Googlebot/2.1; +http://www.google.com/bot.html) Safari/537.36"
+  ].join(" "),
+  chrome_mobile: [
+    "Mozilla/5.0 (Linux; Android 8.0; Pixel 2 Build/OPD3.170816.012)",
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Mobile Safari/537.36"
+  ].join(" "),
+  chrome_desktop: [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3)",
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36"
+  ].join(" ")
+};
+
+const S_PASS = "PASS";
+const S_FAIL = "FAIL";
+const S_WARN = "WARN";
+const S_INFO = "INFO";
+
 export interface ActualExpected {
   readonly actual: string | undefined;
   readonly expected: string;
@@ -64,11 +89,6 @@ export interface TestList {
   (context: Context): Promise<Message[]>;
 }
 
-const S_PASS = "PASS";
-const S_FAIL = "FAIL";
-const S_WARN = "WARN";
-const S_INFO = "INFO";
-
 export const PASS = (s?: string): Promise<Message> =>
   Promise.resolve({ status: S_PASS, message: s });
 export const FAIL = (s: string) => {
@@ -91,7 +111,7 @@ const notPass = (m: Message): boolean => {
 
 export async function IsValid({ $ }: Context) {
   const res = await validate($.html());
-  return res.status === "PASS" ? PASS() : res;
+  return res.status === "PASS" ? PASS() : FAIL(JSON.stringify(res.errors));
 }
 
 export async function LinkRelCanonicalIsOk(context: Context) {
@@ -705,22 +725,28 @@ export function cli(argv: string[]) {
     .version(require("../package.json").version)
     .usage(`amplint [options] URL|copy_as_cURL`)
     .option(
-      `-s, --as <string>`,
+      `-f, --force <string>`,
       "override test type",
       /^(auto|sxg|amp|ampstory)$/,
       "auto"
     )
     .option(
-      `-t, --type <string>`,
-      "override output type",
-      /^(json|tsv|html|text)$/,
+      `-t, --format <string>`,
+      "override output format",
+      /^(text|json|tsv|html)$/,
       "text"
+    )
+    .option(
+      `-A, --user-agent <string>`,
+      "user agent string",
+      /^(googlebot_desktop|googlebot_mobile|chrome_desktop|chrome_mobile)$/,
+      "googlebot_mobile"
     )
     .on("--help", function() {
       console.log("");
       console.log("Examples:");
       console.log("  $ amplint https://www.ampproject.org/");
-      console.log("  $ amplint --type sxg https://www.ampbyexample.org/");
+      console.log("  $ amplint --force sxg https://www.ampbyexample.org/");
     });
 
   if (argv.length <= 2) {
@@ -739,7 +765,7 @@ export function cli(argv: string[]) {
 
   // Main reason to support curl-style arguments is to provide cookies that
   // avoid GDPR interstitials.
-  const headers = seq(2, argv.length - 1)
+  const headers: { [k: string]: string } = seq(2, argv.length - 1)
     .filter(n => argv[n] === "-H")
     .map(n => argv[n + 1])
     .map(s => {
@@ -750,6 +776,8 @@ export function cli(argv: string[]) {
       a[kv[0]] = kv[1];
       return a;
     }, {});
+
+  headers["user-agent"] = UA[program.userAgent as keyof typeof UA];
 
   // options is argv with "curl" and all -H flags removed (to pass to
   // program.parse())
@@ -777,11 +805,11 @@ export function cli(argv: string[]) {
   return body
     .then(b => {
       const $ = cheerio.load(b);
-      const tests = testsForType(program.as, $);
+      const tests = testsForType(program.force, $);
       return lint(tests, { $, headers, url });
     })
     .then(r => {
-      const outputter = outputterForType(program.type);
+      const outputter = outputterForType(program.format);
       console.log(outputter(r));
     })
     .catch(e => console.error(`error:`, e));

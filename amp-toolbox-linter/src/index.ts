@@ -772,8 +772,8 @@ export function cli(argv: string[]) {
     }
   }
 
-  // Main reason to support curl-style arguments is to provide cookies that
-  // avoid GDPR interstitials.
+  // One reason to support curl-style arguments is to provide cookies that avoid
+  // GDPR interstitials.
   const headers: { [k: string]: string } = seq(2, argv.length - 1)
     .filter(n => argv[n] === "-H")
     .map(n => argv[n + 1])
@@ -786,45 +786,69 @@ export function cli(argv: string[]) {
       return a;
     }, {});
 
-  // options is argv with "curl" and all -H flags removed (to pass to
+  // Options is argv with "curl" and all -H flags removed (to pass to
   // program.parse())
   const options = seq(0, argv.length - 1)
     .filter(n => argv[n] !== "curl" && argv[n] !== "-H" && argv[n - 1] !== "-H")
     .map(n => argv[n]);
 
   program.parse(options);
+
   const url = program.args[0];
   if (!url) {
     program.help();
+  } else {
+    program.url = url;
   }
 
-  headers["user-agent"] = UA[program.userAgent as keyof typeof UA];
+  program.headers = headers;
+
+  return easyLint((program as unknown) as {
+    userAgent: string;
+    format: string;
+    force: string;
+    url: string;
+    headers: { [k: string]: string };
+  })
+    .then(console.log)
+    .catch(e => console.error(`error:`, e));
+}
+
+function easyLint({
+  url,
+  userAgent,
+  format,
+  force,
+  headers
+}: {
+  url: string;
+  userAgent: string;
+  format: string;
+  force: string;
+  headers: { [k: string]: string };
+}) {
+  headers["user-agent"] = UA[userAgent as keyof typeof UA];
 
   const body = (() => {
     if (url === "-") {
       return Promise.resolve(readFileSync("/dev/stdin").toString());
-    } else {
-      return fetch(url, { headers }).then(
-        r =>
-          r.ok
-            ? r.text()
-            : Promise.reject(`couldn't load [${url}]: ${r.statusText}`),
-        e => Promise.reject(`couldn't load [${url}]`)
-      );
     }
+    return fetch(url, { headers }).then(
+      r =>
+        r.ok
+          ? r.text()
+          : Promise.reject(`couldn't load [${url}]: ${r.statusText}`),
+      e => Promise.reject(`couldn't load [${url}]`)
+    );
   })();
 
   return body
     .then(b => {
       const $ = cheerio.load(b);
-      const tests = testsForType(program.force, $);
+      const tests = testsForType(force, $);
       return lint(tests, { $, headers, url });
     })
-    .then(r => {
-      const outputter = outputterForType(program.format);
-      console.log(outputter(r));
-    })
-    .catch(e => console.error(`error:`, e));
+    .then(outputterForType(format));
 }
 
 export function outputterForType(

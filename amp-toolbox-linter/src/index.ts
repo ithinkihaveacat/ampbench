@@ -687,19 +687,28 @@ export async function SxgDumpSignedExchangeVerify({ url, headers }: Context) {
       return { isValid, version, uri, status };
     });
   } catch (e) {
-    return WARN(
-      `not testing: couldn't execute [${e.cmd}] (not installed? not in PATH?)`
-    );
+    if (e.code === "ENOENT") {
+      return WARN(
+        `not testing: couldn't execute [${e.cmd}] (not installed? not in PATH?)`
+      );
+    } else {
+      const debug = `echo ${body.toString(
+        "base64"
+      )} | base64 -D | ${CMD} ${ARGS.join(" ")}`;
+      return FAIL(`error: [${e.cmd}] returned [${e.stderr}] [debug: ${debug}]`);
+    }
   }
 
-  const debug = `${fetchToCurl(url, opt)} | ${CMD} ${ARGS.join(" ")}`;
+  const debug = `${fetchToCurl(url, opt, false)} | ${CMD} ${ARGS.join(" ")}`;
 
   if (
     !sxg.isValid ||
     (sxg.uri !== url && sxg.version !== "1b3") ||
     sxg.status !== 200
   ) {
-    return FAIL(`[${url}] is not valid SXG [${sxg}] [debug: ${debug}]`);
+    return FAIL(
+      `[${url}] is not valid SXG [${JSON.stringify(sxg)}] [debug: ${debug}]`
+    );
   } else {
     return PASS();
   }

@@ -22,7 +22,8 @@ export const absoluteUrl = (
 
 export function fetchToCurl(
   url: string,
-  init: { headers?: { [k: string]: string } } = { headers: {} }
+  init: { headers?: { [k: string]: string } } = { headers: {} },
+  includeHeaders = true
 ) {
   const headers = init.headers || {};
 
@@ -30,7 +31,7 @@ export function fetchToCurl(
     .map(k => `-H '${k}: ${headers[k]}'`)
     .join(" ");
 
-  return `curl -sS -i ${h} '${url}'`;
+  return `curl -sS ${includeHeaders ? " -i " : ""}${h} '${url}'`;
 }
 
 export const redirectUrl = throat(

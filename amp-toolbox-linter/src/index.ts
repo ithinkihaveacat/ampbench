@@ -612,7 +612,7 @@ export async function SxgContentNegotiationIsOk({ url, headers }: Context) {
   const hdr3 = res3.headers.get("content-type") || "";
   if (hdr3.indexOf("application/signed-exchange") === -1) {
     return FAIL(
-      `[content-type: application/signed-exchange] not returned for [Accept: application/signed-exchange;v=b3], [amp-cache-transform: google;v="1"] [debug: ${fetchToCurl(
+      `[content-type: application/signed-exchange] not returned for [accept: application/signed-exchange;v=b3], [amp-cache-transform: google;v="1"] [debug: ${fetchToCurl(
         url,
         opt3
       )}]`

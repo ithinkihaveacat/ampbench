@@ -523,7 +523,7 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
       const src = $(e).attr("src");
       const expectedHeight = parseInt($(e).attr("height"), 10);
       const expectedWidth = parseInt($(e).attr("width"), 10);
-      const layout = $(e).attr("layout");
+      const layout = $(e).attr("layout") || "";
       return test(src, layout, expectedWidth, expectedHeight);
     })
     .get() as any) as Array<Promise<Message>>)).filter(notPass);

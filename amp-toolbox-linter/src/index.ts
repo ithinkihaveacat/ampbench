@@ -451,6 +451,7 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
 
   function test(
     src: string,
+    layout: string,
     expectedWidth: number,
     expectedHeight: number
   ): Promise<Message> {
@@ -472,6 +473,10 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
         return WARN(
           `[${src}]: actual ratio [${actualString}] does not match specified [${expectedString}]`
         );
+      }
+      // "For responsive images, the width and height do not need to match the exact width and height of the amp-img; those values just need to result in the same aspect-ratio." https://www.ampproject.org/docs/reference/components/amp-img#the-difference-between-responsive-and-intrinsic-layout
+      if (layout.toLowerCase() === "responsive") {
+        return PASS();
       }
       const actualVolume = actualWidth * actualHeight;
       const expectedVolume = expectedWidth * expectedHeight;
@@ -518,7 +523,8 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
       const src = $(e).attr("src");
       const expectedHeight = parseInt($(e).attr("height"), 10);
       const expectedWidth = parseInt($(e).attr("width"), 10);
-      return test(src, expectedWidth, expectedHeight);
+      const layout = $(e).attr("layout");
+      return test(src, layout, expectedWidth, expectedHeight);
     })
     .get() as any) as Array<Promise<Message>>)).filter(notPass);
 }

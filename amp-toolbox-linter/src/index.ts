@@ -531,14 +531,19 @@ export async function AmpImgHeightWidthIsOk(context: Context) {
 
 export async function AmpImgAmpPixelPreferred(context: Context) {
   const $ = context.$;
-  return await Promise.all($("amp-img[width=1][height=1]")
+  return (await Promise.all($("amp-img[width=1][height=1]")
     .map((_, e) => {
+      const layout = $(e).attr("layout");
+      if (layout === "responsive") {
+        // see comment at AmpImgHeightWidthIsOk
+        return PASS();
+      }
       const s = $(e).toString();
       return WARN(
         `[${s}] has width=1, height=1; <amp-pixel> may be a better choice`
       );
     })
-    .get() as Array<Promise<Message>>);
+    .get() as Array<Promise<Message>>)).filter(notPass);
 }
 
 export async function EndpointsAreAccessibleFromOrigin(context: Context) {

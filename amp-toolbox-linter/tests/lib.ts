@@ -81,7 +81,9 @@ export async function assertNotEqual<T extends object>(
   if (res && res.length === 1) {
     const as = JSON.stringify(await Promise.resolve(actual));
     const es = JSON.stringify(await Promise.resolve(expected));
-    console.log(`not ok ${COUNT} - ${testName} actual: ${as}, expected: ${es}`);
+    console.log(
+      `not ok ${COUNT} - ${testName} actual: ${as}, not expected: ${es}`
+    );
   } else {
     console.log(`ok ${COUNT} - ${testName}`);
   }
@@ -91,14 +93,16 @@ export async function assertNotEqual<T extends object>(
 export async function assertMatch<T extends object>(
   testName: string,
   actual: T | Promise<T>,
-  expected: string
+  expected: RegExp | string
 ) {
   COUNT++;
   const s = JSON.stringify(await Promise.resolve(actual));
   if (s.match(expected)) {
     console.log(`ok ${COUNT} - ${testName}`);
   } else {
-    console.log(`not ok ${COUNT} - ${testName} actual: ${s}`);
+    console.log(
+      `not ok ${COUNT} - ${testName} actual: ${s}, expected regexp match: ${expected.toString()}`
+    );
   }
 }
 

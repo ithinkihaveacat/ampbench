@@ -92,6 +92,9 @@ export async function IsValid({ $ }: Context) {
 
 export async function LinkRelCanonicalIsOk(context: Context) {
   const { $, url } = context;
+  if (ampType($) !== LintType.AmpStory) {
+    return PASS();
+  }
   const canonical = $('link[rel="canonical"]').attr("href");
   if (!canonical) {
     return FAIL("<link rel=canonical> not specified");

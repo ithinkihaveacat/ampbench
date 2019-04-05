@@ -73,10 +73,10 @@ withFixture("testcanonical1", () =>
 );
 
 withFixture("testcanonical2", () =>
-  assertMatch(
+  assertNotEqual(
     `${linter.LinkRelCanonicalIsOk.name} - not canonical`,
-    runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
-    "https://regular-biology.glitch.me/"
+    runTest(linter.LinkRelCanonicalIsOk, "https://copper-cupboard.glitch.me/"),
+    PASS
   )
 );
 
@@ -84,6 +84,17 @@ withFixture("testcanonical3", () =>
   assertEqual(
     `${linter.LinkRelCanonicalIsOk.name} - relative`,
     runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
+    PASS
+  )
+);
+
+withFixture("testcanonical4", () =>
+  assertEqual(
+    `${linter.LinkRelCanonicalIsOk.name} - not AMP Story`,
+    runTest(
+      linter.LinkRelCanonicalIsOk,
+      "https://bejewled-tachometer.glitch.me/"
+    ),
     PASS
   )
 );

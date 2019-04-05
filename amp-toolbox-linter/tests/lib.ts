@@ -128,7 +128,8 @@ export async function runTest<T>(fn: linter.Test, url: string) {
   const context = {
     $,
     headers: {},
-    url
+    url,
+    raw: { body, headers: {} }
   };
   return Promise.resolve(fn(context));
 }
@@ -140,7 +141,8 @@ export async function runTestList<T>(fn: linter.TestList, url: string) {
   const context = {
     $,
     headers: {},
-    url
+    url,
+    raw: { body, headers: {} }
   };
   return Promise.resolve(fn(context));
 }

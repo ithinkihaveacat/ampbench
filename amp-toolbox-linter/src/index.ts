@@ -52,6 +52,7 @@ export interface Message {
 export interface Context {
   readonly url: string;
   readonly $: CheerioStatic;
+  readonly raw: { headers: { [key: string]: string }; body: string };
   readonly headers: {
     [key: string]: string;
   };
@@ -85,8 +86,8 @@ const notPass = (m: Message): boolean => {
   return m.status !== S_PASS;
 };
 
-export async function IsValid({ $ }: Context) {
-  const res = await validate($.html());
+export async function IsValid({ raw }: Context) {
+  const res = await validate(raw.body);
   return res.status === "PASS" ? PASS() : FAIL(JSON.stringify(res.errors));
 }
 

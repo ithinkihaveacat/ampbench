@@ -130,27 +130,39 @@ export function easyLint({
 }) {
   headers["user-agent"] = UA[userAgent as keyof typeof UA];
 
-  const body = (() => {
+  const raw = (async () => {
     if (url === "-") {
-      return Promise.resolve(readFileSync("/dev/stdin").toString());
+      return Promise.resolve({
+        body: readFileSync("/dev/stdin").toString(),
+        headers: {}
+      });
     }
     const debug = fetchToCurl(url, { headers });
-    return fetch(url, { headers }).then(
-      r =>
-        r.ok
-          ? r.text()
-          : Promise.reject(
-              `couldn't load [${url}]: ${r.statusText} [debug: ${debug}]`
-            ),
-      e => Promise.reject(`couldn't load [${url}] [debug: ${debug}]`)
-    );
+    try {
+      const res = await fetch(url, { headers });
+      return res.ok
+        ? Promise.resolve({
+            headers: res.headers,
+            body: await res.text()
+          })
+        : Promise.reject(
+            `couldn't load [${url}]: ${res.statusText} [debug: ${debug}]`
+          );
+    } catch (e) {
+      return Promise.reject(`couldn't load [${url}] [debug: ${debug}]`);
+    }
   })();
 
-  return body
-    .then(b => {
-      const $ = cheerio.load(b);
+  return raw
+    .then(r => {
+      const $ = cheerio.load(r.body);
       const tests = testsForType(force, $);
-      return lint(tests, { $, headers, url });
+      return lint(tests, {
+        raw: r,
+        $,
+        headers,
+        url
+      });
     })
     .then(outputterForType(format));
 }

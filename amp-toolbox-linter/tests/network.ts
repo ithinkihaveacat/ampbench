@@ -64,6 +64,14 @@ withFixture("testvalidity2", async () =>
   )
 );
 
+withFixture("testvalidity3", async () =>
+  assertEqual(
+    `${linter.IsValid.name} - valid with svg`,
+    runTest(linter.IsValid, "https://amp.dev/index.amp.html"),
+    PASS
+  )
+);
+
 withFixture("testcanonical1", () =>
   assertEqual(
     `${linter.LinkRelCanonicalIsOk.name} - canonical`,
@@ -495,4 +503,4 @@ withFixture("sxgamppkg3", () => {
 });
 
 console.log(`# ${basename(__filename)} - tests with mocked HTTP responses`);
-console.log(`1..37`);
+console.log(`1..39`);

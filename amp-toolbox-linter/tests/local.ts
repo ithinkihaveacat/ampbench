@@ -55,7 +55,8 @@ async function run(prefix: string) {
   const context = {
     $,
     headers: {},
-    url
+    url,
+    raw: { body: "", headers: {} }
   };
   const actual = await fn(context);
 

@@ -88,7 +88,7 @@ directory install via `npm install amp-toolbox-linter/pkg`.
 
 Note: this command will emit multiple warnings of the form 'Valid relative
 imports must include the ".js" file extension'; these [can be
-ignored](https://github.com/pikapkg/builders/issues/16).
+ignored](https://github.com/pikapkg/builders/issues/3).
 
 #### `npm run publish`
 

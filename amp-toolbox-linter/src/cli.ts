@@ -7,7 +7,7 @@ import { testsForType, lint, Message } from ".";
 import { fetchToCurl } from "./url";
 import { isArray } from "util";
 
-import { version } from "../package.json";
+// import { version } from "../package.json";
 
 const UA = {
   googlebot_mobile: [
@@ -31,7 +31,7 @@ const UA = {
 
 export function cli(argv: string[]) {
   program
-    .version(version)
+    // .version(version)
     .usage(`amplint [options] URL|copy_as_cURL`)
     .option(
       `-f, --force <string>`,

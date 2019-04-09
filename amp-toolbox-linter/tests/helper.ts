@@ -59,7 +59,7 @@ withFixture("getinlinemetadata", () =>
 
 withFixture("corsendpoints1", () =>
   assertEqual(
-    `${corsEndpoints.name} - all endpoints extracted (AMP)`,
+    `${corsEndpoints.name} - AMP`,
     runCheerioFn(corsEndpoints, "https://swift-track.glitch.me/"),
     ["https://ampbyexample.com/json/examples.json"]
   )
@@ -67,7 +67,7 @@ withFixture("corsendpoints1", () =>
 
 withFixture("corsendpoints2", () =>
   assertEqual(
-    `${corsEndpoints.name} - all endpoints extracted (AMP Story)`,
+    `${corsEndpoints.name} - AMP Story`,
     runCheerioFn(
       corsEndpoints,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"

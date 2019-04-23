@@ -776,10 +776,10 @@ export async function lint(
     // when getting the members of a union type", see
     // https://github.com/Microsoft/TypeScript/issues/7294#issuecomment-190335544
     tests.map((f: Test | TestList) =>
-      (f as Test & TestList)(context).then((r: Message | Message[]) => [
-        f.name,
-        r
-      ])
+      (f as Test & TestList)(context).then(
+        (r: Message | Message[]) => [f.name, r],
+        e => [f.name, { status: "ERROR", message: e.toString() }]
+      )
     )
   );
   return res.reduce(

@@ -87,8 +87,13 @@ Generates npm-installable version of the package in `pkg/`. From another
 directory install via `npm install amp-toolbox-linter/pkg`.
 
 Note: this command will emit multiple warnings of the form 'Valid relative
-imports must include the ".js" file extension'; these [can be
-ignored](https://github.com/pikapkg/builders/issues/3).
+imports must include the ".js" file extension' as well as complaints about
+`require` and `module` not being valid ESM globals; these can both be ignored.
+
+(The first issue is due to extension-less imports [not being valid
+ES2018](https://github.com/pikapkg/builders/issues/3); the second is that the
+globals `require` and `module` are not valid ESM globals. Not being valid ES2018
+is not a problem here, since this code is not designed to run in the browser.)
 
 #### `npm run publish`
 

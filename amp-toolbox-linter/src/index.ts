@@ -781,7 +781,7 @@ export async function lint(
     tests.map((f: Test | TestList) =>
       (f as Test & TestList)(context).then(
         (r: Message | Message[]) => [f.name, r],
-        e => [f.name, { status: "ERROR", message: e.toString() }]
+        e => [f.name, { status: "INTERNAL_ERROR", message: e.toString() }]
       )
     )
   );

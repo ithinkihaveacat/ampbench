@@ -711,7 +711,10 @@ export async function SxgAmppkgIsForwarded({ url, headers }: Context) {
     return `${protocol}//${host}/amppkg/validity`;
   })();
   const res = await fetch(validity, { headers });
-  return res.ok && res.headers.get("content-type") === "application/cbor"
+  const contentType = res.headers.get("content-type");
+  // Substring instead of equality because some server provide a
+  // charset--probably incorrectly, but seems to work, so...
+  return res.ok && contentType && contentType.includes("application/cbor")
     ? PASS()
     : FAIL(
         `/amppkg/ not forwarded to amppackager [debug: ${fetchToCurl(validity, {

@@ -1,8 +1,6 @@
 import { basename } from "path";
 import {
   withFixture,
-  assertEqual,
-  assertFn,
   assertMatch,
   runNetworkTest,
   assertPass,
@@ -342,13 +340,12 @@ withFixture("cors3", () =>
 );
 
 withFixture("cors4", () =>
-  assertEqual(
+  assertPass(
     `${EndpointsAreAccessibleFromCache.name} - all headers correct`,
     runNetworkTest(
       EndpointsAreAccessibleFromCache,
       "https://swift-track.glitch.me/"
-    ),
-    []
+    )
   )
 );
 

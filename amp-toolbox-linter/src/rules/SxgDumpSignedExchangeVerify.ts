@@ -2,7 +2,7 @@ import { default as fetch } from "node-fetch";
 import execa from "execa";
 import { fetchToCurl } from "../url";
 import { Context } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class SxgDumpSignedExchangeVerify extends Rule {
   async run({ url, headers }: Context) {

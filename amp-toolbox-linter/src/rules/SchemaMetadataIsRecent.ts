@@ -1,6 +1,6 @@
 import { schemaMetadata } from "../helper";
 import { Context } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class SchemaMetadataIsRecent extends Rule {
   run({ $ }: Context) {

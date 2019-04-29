@@ -1,6 +1,6 @@
 import { absoluteUrl } from "../url";
 import { Context, canXhrCache } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class BookendAppearsOnCache extends Rule {
   run(context: Context) {

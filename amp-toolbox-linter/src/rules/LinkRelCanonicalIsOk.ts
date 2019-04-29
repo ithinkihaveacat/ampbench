@@ -1,7 +1,7 @@
 import { absoluteUrl, redirectUrl } from "../url";
 import { ampType } from "../helper";
 import { Context, LintType } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class LinkRelCanonicalIsOk extends Rule {
   async run(context: Context) {

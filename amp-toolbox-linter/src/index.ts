@@ -29,7 +29,7 @@ import { SxgVaryOnAcceptAct } from "./rules/SxgVaryOnAcceptAct";
 import { SxgContentNegotiationIsOk } from "./rules/SxgContentNegotiationIsOk";
 import { SxgDumpSignedExchangeVerify } from "./rules/SxgDumpSignedExchangeVerify";
 import { SxgAmppkgIsForwarded } from "./rules/SxgAmppkgIsForwarded";
-import { Rule, RuleConstructor } from "./rule";
+import { RuleConstructor } from "./rule";
 
 export enum LintType {
   Amp,

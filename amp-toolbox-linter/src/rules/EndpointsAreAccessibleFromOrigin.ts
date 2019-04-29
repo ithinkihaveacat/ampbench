@@ -1,7 +1,7 @@
 import { absoluteUrl } from "../url";
 import { corsEndpoints } from "../helper";
 import { Context, canXhrSameOrigin, notPass } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class EndpointsAreAccessibleFromOrigin extends Rule {
   async run(context: Context) {

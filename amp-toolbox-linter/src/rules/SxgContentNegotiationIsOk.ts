@@ -1,7 +1,7 @@
 import { default as fetch } from "node-fetch";
 import { fetchToCurl } from "../url";
 import { Context } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class SxgContentNegotiationIsOk extends Rule {
   async run({ url, headers }: Context) {

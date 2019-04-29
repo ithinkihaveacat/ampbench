@@ -1,6 +1,6 @@
 import { absoluteUrl, dimensions } from "../url";
 import { Context, Result, notPass } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class AmpImgHeightWidthIsOk extends Rule {
   async run(context: Context) {

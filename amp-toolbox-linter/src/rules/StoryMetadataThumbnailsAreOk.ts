@@ -2,7 +2,7 @@ import { ImageSize } from "probe-image-size";
 import { absoluteUrl, dimensions } from "../url";
 import { inlineMetadata, InlineMetadata } from "../helper";
 import { Context, Result, notPass } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class StoryMetadataThumbnailsAreOk extends Rule {
   async run(context: Context) {

@@ -2,7 +2,7 @@ import { URL } from "url";
 import { default as fetch } from "node-fetch";
 import { fetchToCurl } from "../url";
 import { Context } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 export class SxgAmppkgIsForwarded extends Rule {
   async run({ url, headers }: Context) {
     const validity = (() => {

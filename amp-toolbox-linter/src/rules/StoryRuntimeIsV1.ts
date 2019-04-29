@@ -1,5 +1,5 @@
 import { Context } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class StoryRuntimeIsV1 extends Rule {
   run({ $ }: Context) {

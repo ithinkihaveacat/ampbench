@@ -1,5 +1,5 @@
 import { Context } from "../index";
-import { Rule } from "../Rule";
+import { Rule } from "../rule";
 
 export class StoryMetadataIsV1 extends Rule {
   run({ $ }: Context) {

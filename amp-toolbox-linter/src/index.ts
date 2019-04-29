@@ -12,8 +12,6 @@ import { SchemaMetadataIsNews } from "./rules/SchemaMetadataIsNews";
 import { LinkRelCanonicalIsOk } from "./rules/LinkRelCanonicalIsOk";
 import { AmpVideoIsSmall } from "./rules/AmpVideoIsSmall";
 import { BookendExists } from "./rules/BookendExists";
-import { BookendAppearsOnOrigin } from "./rules/BookendAppearsOnOrigin";
-import { BookendAppearsOnCache } from "./rules/BookendAppearsOnCache";
 import { AmpVideoIsSpecifiedByAttribute } from "./rules/AmpVideoIsSpecifiedByAttribute";
 import { StoryRuntimeIsV1 } from "./rules/StoryRuntimeIsV1";
 import { StoryMetadataIsV1 } from "./rules/StoryMetadataIsV1";
@@ -151,8 +149,6 @@ export function testsForType(type: string, $: CheerioStatic) {
   tests.set(
     LintType.AmpStory,
     (tests.get(LintType.Amp) || []).concat([
-      BookendAppearsOnCache,
-      BookendAppearsOnOrigin,
       BookendExists,
       SchemaMetadataIsNews,
       StoryRuntimeIsV1,

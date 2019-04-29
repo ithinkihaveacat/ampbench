@@ -11,8 +11,6 @@ import { StoryMetadataThumbnailsAreOk } from "../src/rules/StoryMetadataThumbnai
 import { Result, Status } from "../src";
 import { LinkRelCanonicalIsOk } from "../src/rules/LinkRelCanonicalIsOk";
 import { AmpVideoIsSmall } from "../src/rules/AmpVideoIsSmall";
-import { BookendAppearsOnOrigin } from "../src/rules/BookendAppearsOnOrigin";
-import { BookendAppearsOnCache } from "../src/rules/BookendAppearsOnCache";
 import { StoryMetadataIsV1 } from "../src/rules/StoryMetadataIsV1";
 import { AmpImgHeightWidthIsOk } from "../src/rules/AmpImgHeightWidthIsOk";
 import { EndpointsAreAccessibleFromOrigin } from "../src/rules/EndpointsAreAccessibleFromOrigin";
@@ -134,9 +132,9 @@ withFixture("testvideosize3", () =>
 
 withFixture("bookendsameorigin1", () =>
   assertPass(
-    `${BookendAppearsOnOrigin.name} - configured correctly`,
+    `${EndpointsAreAccessibleFromOrigin.name} - configured correctly`,
     runNetworkTest(
-      BookendAppearsOnOrigin,
+      EndpointsAreAccessibleFromOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     )
   )
@@ -144,9 +142,9 @@ withFixture("bookendsameorigin1", () =>
 
 withFixture("bookendsameorigin2", () =>
   assertMatch(
-    `${BookendAppearsOnOrigin.name} - bookend not application/json`,
+    `${EndpointsAreAccessibleFromOrigin.name} - bookend not application/json`,
     runNetworkTest(
-      BookendAppearsOnOrigin,
+      EndpointsAreAccessibleFromOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "application/json"
@@ -155,9 +153,9 @@ withFixture("bookendsameorigin2", () =>
 
 withFixture("bookendsameorigin3", () =>
   assertMatch(
-    `${BookendAppearsOnOrigin.name} - bookend not JSON`,
+    `${EndpointsAreAccessibleFromOrigin.name} - bookend not JSON`,
     runNetworkTest(
-      BookendAppearsOnOrigin,
+      EndpointsAreAccessibleFromOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "JSON"
@@ -166,9 +164,11 @@ withFixture("bookendsameorigin3", () =>
 
 withFixture("bookendsameorgin4", () =>
   assertPass(
-    `${BookendAppearsOnOrigin.name} - v0 AMP Story - configured correctly`,
+    `${
+      EndpointsAreAccessibleFromOrigin.name
+    } - v0 AMP Story - configured correctly`,
     runNetworkTest(
-      BookendAppearsOnOrigin,
+      EndpointsAreAccessibleFromOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     )
   )
@@ -176,19 +176,19 @@ withFixture("bookendsameorgin4", () =>
 
 withFixture("bookendcache1", () =>
   assertPass(
-    `${BookendAppearsOnCache.name} - configured correctly`,
+    `${EndpointsAreAccessibleFromCache.name} - configured correctly`,
     runNetworkTest(
-      BookendAppearsOnCache,
-      "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
+      EndpointsAreAccessibleFromCache,
+      "https://preview.amp.dev/documentation/examples/introduction/stories_in_amp/"
     )
   )
 );
 
 withFixture("bookendcache2", () =>
   assertMatch(
-    `${BookendAppearsOnCache.name} - incorrect headers`,
+    `${EndpointsAreAccessibleFromCache.name} - incorrect headers`,
     runNetworkTest(
-      BookendAppearsOnCache,
+      EndpointsAreAccessibleFromCache,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "access-control-allow-origin"

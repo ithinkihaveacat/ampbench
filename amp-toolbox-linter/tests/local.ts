@@ -1,100 +1,90 @@
-const FIXTURES = __dirname + "/local";
-
+import { assertPass, runLocalTest, assertWarn, assertFail } from "./lib";
+import { AmpImgAmpPixelPreferred } from "../src/rule/AmpImgAmpPixelPreferred";
+import { MetaCharsetIsFirst } from "../src/rule/MetaCharsetIsFirst";
+import { RuntimeIsPreloaded } from "../src/rule/RuntimeIsPreloaded";
+import { SchemaMetadataIsNews } from "../src/rule/SchemaMetadataIsNews";
+import { StoryRuntimeIsV1 } from "../src/rule/StoryRuntimeIsV1";
 import { basename } from "path";
 
-import * as cheerio from "cheerio";
-import { diffJson as diff } from "diff";
-import * as fs from "fs";
+assertWarn(
+  `${AmpImgAmpPixelPreferred.name} - <amp-img height="1" width="1">`,
+  runLocalTest(
+    AmpImgAmpPixelPreferred,
+    "local/AmpImgAmpPixelPreferred-1/source.html"
+  )
+);
 
-import * as linter from "../src";
+assertPass(
+  `${AmpImgAmpPixelPreferred.name} - <amp-img> valid height, width`,
+  runLocalTest(
+    AmpImgAmpPixelPreferred,
+    "local/AmpImgAmpPixelPreferred-2/source.html"
+  )
+);
 
-async function run(prefix: string) {
-  const match = prefix.match(/\/(.*)\-\d+/);
+assertPass(
+  `${AmpImgAmpPixelPreferred.name} - <amp-img> valid height, width`,
+  runLocalTest(
+    AmpImgAmpPixelPreferred,
+    "local/AmpImgAmpPixelPreferred-3/source.html"
+  )
+);
 
-  if (!match) {
-    console.warn(`skipping ${prefix} (can't extract test name)`);
-    return;
-  }
+assertPass(
+  `${AmpImgAmpPixelPreferred.name} - <amp-img> valid height, width`,
+  runLocalTest(
+    AmpImgAmpPixelPreferred,
+    "local/AmpImgAmpPixelPreferred-4/source.html"
+  )
+);
 
-  const name = basename(match[1]);
+assertPass(
+  `${AmpImgAmpPixelPreferred.name} - <amp-img> valid height, width`,
+  runLocalTest(
+    AmpImgAmpPixelPreferred,
+    "local/AmpImgAmpPixelPreferred-5/source.html"
+  )
+);
 
-  if (!(name in linter)) {
-    console.warn(`${name}() not found`);
-    return;
-  }
+assertPass(
+  `${MetaCharsetIsFirst.name} - <meta charset> is first`,
+  runLocalTest(MetaCharsetIsFirst, "local/MetaCharsetIsFirst-1/source.html")
+);
 
-  const $ = (() => {
-    try {
-      return cheerio.load(fs.readFileSync(`${prefix}/source.html`).toString());
-    } catch (e) {
-      console.error(
-        `error: can't read/parse ${prefix}/source.html, skipping ${prefix}`
-      );
-      return null;
-    }
-  })();
+assertFail(
+  `${MetaCharsetIsFirst.name} - <meta charset> missing`,
+  runLocalTest(MetaCharsetIsFirst, "local/MetaCharsetIsFirst-2/source.html")
+);
 
-  const expected = (() => {
-    try {
-      return JSON.parse(fs.readFileSync(`${prefix}/expected.json`).toString());
-    } catch (e) {
-      console.error(
-        `error: can't read/parse ${prefix}/expected.json, skipping ${prefix}`
-      );
-      return null;
-    }
-  })();
+assertWarn(
+  `${RuntimeIsPreloaded.name} - <link rel="preload"> is absent`,
+  runLocalTest(RuntimeIsPreloaded, "local/RuntimeIsPreloaded-1/source.html")
+);
 
-  if (!$ || !expected) {
-    return;
-  }
+assertPass(
+  `${RuntimeIsPreloaded.name} - <link rel="preload"> is present`,
+  runLocalTest(RuntimeIsPreloaded, "local/RuntimeIsPreloaded-2/source.html")
+);
 
-  const url = expected._url || "https://example.com/";
+assertPass(
+  `${SchemaMetadataIsNews.name} - schema type is NewsArticle`,
+  runLocalTest(SchemaMetadataIsNews, "local/SchemaMetadataIsNews-1/source.html")
+);
 
-  const fn = (linter as any)[name] as linter.Test;
-  const context = {
-    $,
-    headers: {},
-    url,
-    raw: { body: "", headers: {} }
-  };
-  const actual = await fn(context);
+assertWarn(
+  `${SchemaMetadataIsNews.name} - schema type is not NewsArticle`,
+  runLocalTest(SchemaMetadataIsNews, "local/SchemaMetadataIsNews-2/source.html")
+);
 
-  return diff(expected, actual);
-}
+assertPass(
+  `${StoryRuntimeIsV1.name} - runtime is v1`,
+  runLocalTest(StoryRuntimeIsV1, "local/StoryRuntimeIsV1-1/source.html")
+);
 
-let COUNT = 0;
+assertFail(
+  `${StoryRuntimeIsV1.name} - runtime is not v1`,
+  runLocalTest(StoryRuntimeIsV1, "local/StoryRuntimeIsV1-2/source.html")
+);
 
 console.log(`# ${basename(__filename)} - HTML-only tests`);
-
-if (process.argv.length === 3) {
-  const prefix = process.argv[2];
-
-  run(prefix).then(res => {
-    if (!res) {
-      return;
-    }
-    res.forEach(part => {
-      const color = part.added ? "green" : part.removed ? "red" : "grey";
-      process.stdout.write((part.value as any)[color]);
-    });
-    process.stdout.write("\n");
-  });
-} else {
-  fs.readdirSync(FIXTURES).forEach(async d => {
-    const count = ++COUNT;
-    const prefix = `${FIXTURES}/${d}`;
-    const res = await run(prefix);
-    if (res && res.length === 1) {
-      console.log(`ok ${count} - ${basename(prefix)}`);
-    } else {
-      console.log(
-        `not ok ${count} - ${prefix} # more info: ${basename(
-          process.argv[0]
-        )} ${basename(process.argv[1])} ${prefix}`
-      );
-    }
-  });
-
-  console.log(`1..${COUNT}`);
-}
+console.log(`1..13`);

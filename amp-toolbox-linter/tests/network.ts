@@ -1,25 +1,37 @@
 import { basename } from "path";
-import * as linter from "../src";
 import {
   withFixture,
   assertEqual,
   assertFn,
-  runTestList,
   assertMatch,
-  runTest,
-  assertNotEqual
+  runNetworkTest,
+  assertPass,
+  assertFail,
+  assertFnList
 } from "./lib";
-
-const PASS = linter.PASS();
+import { StoryMetadataThumbnailsAreOk } from "../src/rule/StoryMetadataThumbnailsAreOk";
+import { Result, Status } from "../src";
+import { LinkRelCanonicalIsOk } from "../src/rule/LinkRelCanonicalIsOk";
+import { AmpVideoIsSmall } from "../src/rule/AmpVideoIsSmall";
+import { BookendAppearsOnOrigin } from "../src/rule/BookendAppearsOnOrigin";
+import { BookendAppearsOnCache } from "../src/rule/BookendAppearsOnCache";
+import { StoryMetadataIsV1 } from "../src/rule/StoryMetadataIsV1";
+import { AmpImgHeightWidthIsOk } from "../src/rule/AmpImgHeightWidthIsOk";
+import { EndpointsAreAccessibleFromOrigin } from "../src/rule/EndpointsAreAccessibleFromOrigin";
+import { EndpointsAreAccessibleFromCache } from "../src/rule/EndpointsAreAccessibleFromCache";
+import { SxgVaryOnAcceptAct } from "../src/rule/SxgVaryOnAcceptAct";
+import { SxgContentNegotiationIsOk } from "../src/rule/SxgContentNegotiationIsOk";
+import { SxgAmppkgIsForwarded } from "../src/rule/SxgAmppkgIsForwarded";
+import { IsValid } from "../src/rule/IsValid";
 
 withFixture("thumbnails1", () =>
-  assertFn<linter.Message[]>(
-    `${linter.StoryMetadataThumbnailsAreOk.name} - too small`,
-    runTestList(
-      linter.StoryMetadataThumbnailsAreOk,
+  assertFnList(
+    `${StoryMetadataThumbnailsAreOk.name} - too small`,
+    runNetworkTest(
+      StoryMetadataThumbnailsAreOk,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
-    actual => {
+    (actual: Result[]) => {
       return actual.length === 2
         ? ""
         : `expected no errors, got ${JSON.stringify(actual)}`;
@@ -29,9 +41,9 @@ withFixture("thumbnails1", () =>
 
 withFixture("thumbnails2", () =>
   assertMatch(
-    `${linter.StoryMetadataThumbnailsAreOk.name} - publisher-logo-src missing`,
-    runTestList(
-      linter.StoryMetadataThumbnailsAreOk,
+    `${StoryMetadataThumbnailsAreOk.name} - publisher-logo-src missing`,
+    runNetworkTest(
+      StoryMetadataThumbnailsAreOk,
       "https://regular-biology.glitch.me/"
     ),
     "publisher-logo-src"
@@ -40,120 +52,103 @@ withFixture("thumbnails2", () =>
 
 withFixture("thumbnails3", () =>
   assertMatch(
-    `${
-      linter.StoryMetadataThumbnailsAreOk.name
-    } - poster-portrait-src not found`,
-    runTestList(linter.StoryMetadataThumbnailsAreOk, "http://localhost:5000/"),
+    `${StoryMetadataThumbnailsAreOk.name} - poster-portrait-src not found`,
+    runNetworkTest(StoryMetadataThumbnailsAreOk, "http://localhost:5000/"),
     "file not found"
   )
 );
 
 withFixture("testvalidity1", () =>
-  assertEqual(
-    `${linter.IsValid.name} - valid`,
-    runTest(linter.IsValid, "https://www.ampproject.org/"),
-    PASS
+  assertPass(
+    `${IsValid.name} - valid`,
+    runNetworkTest(IsValid, "https://www.ampproject.org/")
   )
 );
 
 withFixture("testvalidity2", async () =>
-  assertNotEqual(
-    `${linter.IsValid.name} - not valid`,
-    runTest(linter.IsValid, "https://precious-sturgeon.glitch.me/"),
-    PASS
+  assertFail(
+    `${IsValid.name} - not valid`,
+    runNetworkTest(IsValid, "https://precious-sturgeon.glitch.me/")
   )
 );
 
 withFixture("testvalidity3", async () =>
-  assertEqual(
-    `${linter.IsValid.name} - valid with svg`,
-    runTest(linter.IsValid, "https://amp.dev/index.amp.html"),
-    PASS
+  assertPass(
+    `${IsValid.name} - valid with svg`,
+    runNetworkTest(IsValid, "https://amp.dev/index.amp.html")
   )
 );
 
 withFixture("testcanonical1", () =>
-  assertEqual(
-    `${linter.LinkRelCanonicalIsOk.name} - canonical`,
-    runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
-    PASS
+  assertPass(
+    `${LinkRelCanonicalIsOk.name} - canonical`,
+    runNetworkTest(LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/")
   )
 );
 
 withFixture("testcanonical2", () =>
-  assertNotEqual(
-    `${linter.LinkRelCanonicalIsOk.name} - not canonical`,
-    runTest(linter.LinkRelCanonicalIsOk, "https://copper-cupboard.glitch.me/"),
-    PASS
+  assertFail(
+    `${LinkRelCanonicalIsOk.name} - not canonical`,
+    runNetworkTest(LinkRelCanonicalIsOk, "https://copper-cupboard.glitch.me/")
   )
 );
 
 withFixture("testcanonical3", () =>
-  assertEqual(
-    `${linter.LinkRelCanonicalIsOk.name} - relative`,
-    runTest(linter.LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/"),
-    PASS
+  assertPass(
+    `${LinkRelCanonicalIsOk.name} - relative`,
+    runNetworkTest(LinkRelCanonicalIsOk, "https://regular-biology.glitch.me/")
   )
 );
 
 withFixture("testcanonical4", () =>
-  assertEqual(
-    `${linter.LinkRelCanonicalIsOk.name} - not AMP Story`,
-    runTest(
-      linter.LinkRelCanonicalIsOk,
+  assertPass(
+    `${LinkRelCanonicalIsOk.name} - not AMP Story`,
+    runNetworkTest(
+      LinkRelCanonicalIsOk,
       "https://bejewled-tachometer.glitch.me/"
-    ),
-    PASS
+    )
   )
 );
 
 withFixture("testvideosize1", () =>
-  assertEqual(
-    `${linter.AmpVideoIsSmall.name} - too big`,
-    runTest(linter.AmpVideoIsSmall, "https://regular-biology.glitch.me/"),
-    {
-      message:
-        "videos over 4MB: [https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4]",
-      status: "FAIL"
-    }
+  assertFail(
+    `${AmpVideoIsSmall.name} - too big`,
+    runNetworkTest(AmpVideoIsSmall, "https://regular-biology.glitch.me/")
   )
 );
 
 withFixture("testvideosize2", () =>
-  assertEqual(
-    `${linter.AmpVideoIsSmall.name} - good size #1`,
-    runTest(linter.AmpVideoIsSmall, "https://regular-biology.glitch.me/"),
-    PASS
+  assertPass(
+    `${AmpVideoIsSmall.name} - good size #1`,
+    runNetworkTest(AmpVideoIsSmall, "https://regular-biology.glitch.me/")
   )
 );
 
 withFixture("testvideosize3", () =>
-  assertEqual(
-    `${linter.AmpVideoIsSmall.name} - good size #2`,
-    runTest(
-      linter.AmpVideoIsSmall,
+  assertPass(
+    `${AmpVideoIsSmall.name} - good size #2`,
+    runNetworkTest(
+      AmpVideoIsSmall,
       "https://ampbyexample.com/stories/features/media/preview/embed/"
-    ),
-    PASS
+    )
   )
 );
 
 withFixture("bookendsameorigin1", () =>
-  assertEqual(
-    `${linter.BookendAppearsOnOrigin.name} - configured correctly`,
-    runTest(
-      linter.BookendAppearsOnOrigin,
+  assertPass(
+    `${BookendAppearsOnOrigin.name} - configured correctly`,
+    runNetworkTest(
+      BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
-    ),
-    PASS
+    )
   )
 );
 
 withFixture("bookendsameorigin2", () =>
   assertMatch(
-    `${linter.BookendAppearsOnOrigin.name} - bookend not application/json`,
-    runTest(
-      linter.BookendAppearsOnOrigin,
+    `${BookendAppearsOnOrigin.name} - bookend not application/json`,
+    runNetworkTest(
+      BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "application/json"
@@ -162,9 +157,9 @@ withFixture("bookendsameorigin2", () =>
 
 withFixture("bookendsameorigin3", () =>
   assertMatch(
-    `${linter.BookendAppearsOnOrigin.name} - bookend not JSON`,
-    runTest(
-      linter.BookendAppearsOnOrigin,
+    `${BookendAppearsOnOrigin.name} - bookend not JSON`,
+    runNetworkTest(
+      BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "JSON"
@@ -172,34 +167,30 @@ withFixture("bookendsameorigin3", () =>
 );
 
 withFixture("bookendsameorgin4", () =>
-  assertEqual(
-    `${
-      linter.BookendAppearsOnOrigin.name
-    } - v0 AMP Story - configured correctly`,
-    runTest(
-      linter.BookendAppearsOnOrigin,
+  assertPass(
+    `${BookendAppearsOnOrigin.name} - v0 AMP Story - configured correctly`,
+    runNetworkTest(
+      BookendAppearsOnOrigin,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
-    ),
-    PASS
+    )
   )
 );
 
 withFixture("bookendcache1", () =>
-  assertEqual(
-    `${linter.BookendAppearsOnCache.name} - configured correctly`,
-    runTest(
-      linter.BookendAppearsOnCache,
+  assertPass(
+    `${BookendAppearsOnCache.name} - configured correctly`,
+    runNetworkTest(
+      BookendAppearsOnCache,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
-    ),
-    PASS
+    )
   )
 );
 
 withFixture("bookendcache2", () =>
   assertMatch(
-    `${linter.BookendAppearsOnCache.name} - incorrect headers`,
-    runTest(
-      linter.BookendAppearsOnCache,
+    `${BookendAppearsOnCache.name} - incorrect headers`,
+    runNetworkTest(
+      BookendAppearsOnCache,
       "https://ampbyexample.com/stories/introduction/amp_story_hello_world/preview/embed/"
     ),
     "access-control-allow-origin"
@@ -207,21 +198,20 @@ withFixture("bookendcache2", () =>
 );
 
 withFixture("ampstoryv1metadata1", () =>
-  assertEqual(
-    `${linter.StoryMetadataIsV1.name} - valid metadata`,
-    runTest(
-      linter.StoryMetadataIsV1,
+  assertPass(
+    `${StoryMetadataIsV1.name} - valid metadata`,
+    runNetworkTest(
+      StoryMetadataIsV1,
       "https://ithinkihaveacat.github.io/hello-world-amp-story/"
-    ),
-    PASS
+    )
   )
 );
 
 withFixture("ampstoryv1metadata2", () =>
   assertMatch(
-    `${linter.StoryMetadataIsV1.name} - invalid metadata`,
-    runTest(
-      linter.StoryMetadataIsV1,
+    `${StoryMetadataIsV1.name} - invalid metadata`,
+    runNetworkTest(
+      StoryMetadataIsV1,
       "https://ithinkihaveacat-hello-world-amp-story-7.glitch.me/"
     ),
     "publisher-logo-src"
@@ -229,10 +219,10 @@ withFixture("ampstoryv1metadata2", () =>
 );
 
 withFixture("ampimg1", () =>
-  assertFn<linter.Message[]>(
-    `${linter.AmpImgHeightWidthIsOk.name} - height/width are incorrect #1`,
-    runTestList(
-      linter.AmpImgHeightWidthIsOk,
+  assertFnList(
+    `${AmpImgHeightWidthIsOk.name} - height/width are incorrect #1`,
+    runNetworkTest(
+      AmpImgHeightWidthIsOk,
       "https://ampbyexample.com/components/amp-img/"
     ),
     res => {
@@ -249,10 +239,10 @@ withFixture("ampimg1", () =>
 );
 
 withFixture("ampimg2", () =>
-  assertFn<linter.Message[]>(
-    `${linter.AmpImgHeightWidthIsOk.name} - height/width are incorrect #2`,
-    runTestList(
-      linter.AmpImgHeightWidthIsOk,
+  assertFnList(
+    `${AmpImgHeightWidthIsOk.name} - height/width are incorrect #2`,
+    runNetworkTest(
+      AmpImgHeightWidthIsOk,
       "https://www.ampproject.org/docs/reference/components/amp-story"
     ),
     res => {
@@ -276,10 +266,10 @@ withFixture("ampimg2", () =>
 );
 
 withFixture("ampimg3", () =>
-  assertFn<linter.Message[]>(
-    `${linter.AmpImgHeightWidthIsOk.name} - height/width are correct`,
-    runTestList(
-      linter.AmpImgHeightWidthIsOk,
+  assertFnList(
+    `${AmpImgHeightWidthIsOk.name} - height/width are correct`,
+    runNetworkTest(
+      AmpImgHeightWidthIsOk,
       "https://ampbyexample.com/introduction/hello_world/"
     ),
     res => {
@@ -291,11 +281,9 @@ withFixture("ampimg3", () =>
 );
 
 withFixture("ampimg4", () =>
-  assertFn<linter.Message[]>(
-    `${
-      linter.AmpImgHeightWidthIsOk.name
-    } - height/width are incorrect, but ignored`,
-    runTestList(linter.AmpImgHeightWidthIsOk, "https://pyrite-coil.glitch.me"),
+  assertFnList(
+    `${AmpImgHeightWidthIsOk.name} - height/width are incorrect, but ignored`,
+    runNetworkTest(AmpImgHeightWidthIsOk, "https://pyrite-coil.glitch.me"),
     res => {
       return res.length === 0
         ? ""
@@ -305,12 +293,9 @@ withFixture("ampimg4", () =>
 );
 
 withFixture("ampimg5", () =>
-  assertFn<linter.Message[]>(
-    `${linter.AmpImgHeightWidthIsOk.name} - height/width are correct`,
-    runTestList(
-      linter.AmpImgHeightWidthIsOk,
-      "https://charming-pirate.glitch.me/"
-    ),
+  assertFnList(
+    `${AmpImgHeightWidthIsOk.name} - height/width are correct`,
+    runNetworkTest(AmpImgHeightWidthIsOk, "https://charming-pirate.glitch.me/"),
     res => {
       return res.length === 0
         ? ""
@@ -320,10 +305,10 @@ withFixture("ampimg5", () =>
 );
 
 withFixture("cors1", () =>
-  assertFn<linter.Message[]>(
-    `${linter.EndpointsAreAccessibleFromOrigin.name} - all headers correct`,
-    runTestList(
-      linter.EndpointsAreAccessibleFromOrigin,
+  assertFnList(
+    `${EndpointsAreAccessibleFromOrigin.name} - all headers correct`,
+    runNetworkTest(
+      EndpointsAreAccessibleFromOrigin,
       "https://swift-track.glitch.me/"
     ),
     res => {
@@ -336,9 +321,9 @@ withFixture("cors1", () =>
 
 withFixture("cors2", () =>
   assertMatch(
-    `${linter.EndpointsAreAccessibleFromOrigin.name} - endpoint is 404`,
-    runTestList(
-      linter.EndpointsAreAccessibleFromOrigin,
+    `${EndpointsAreAccessibleFromOrigin.name} - endpoint is 404`,
+    runNetworkTest(
+      EndpointsAreAccessibleFromOrigin,
       "https://swift-track.glitch.me/"
     ),
     "404"
@@ -347,11 +332,9 @@ withFixture("cors2", () =>
 
 withFixture("cors3", () =>
   assertMatch(
-    `${
-      linter.EndpointsAreAccessibleFromOrigin.name
-    } - endpoint not application/json`,
-    runTestList(
-      linter.EndpointsAreAccessibleFromOrigin,
+    `${EndpointsAreAccessibleFromOrigin.name} - endpoint not application/json`,
+    runNetworkTest(
+      EndpointsAreAccessibleFromOrigin,
       "https://swift-track.glitch.me/"
     ),
     "application/json"
@@ -360,9 +343,9 @@ withFixture("cors3", () =>
 
 withFixture("cors4", () =>
   assertEqual(
-    `${linter.EndpointsAreAccessibleFromCache.name} - all headers correct`,
-    runTestList(
-      linter.EndpointsAreAccessibleFromCache,
+    `${EndpointsAreAccessibleFromCache.name} - all headers correct`,
+    runNetworkTest(
+      EndpointsAreAccessibleFromCache,
       "https://swift-track.glitch.me/"
     ),
     []
@@ -370,150 +353,81 @@ withFixture("cors4", () =>
 );
 
 withFixture("sxgvary1", () => {
-  const expected = "FAIL";
-  return assertFn(
-    `${linter.SxgVaryOnAcceptAct.name} - vary header not returned`,
-    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}`
+  return assertFail(
+    `${SxgVaryOnAcceptAct.name} - vary header not returned`,
+    runNetworkTest(SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/")
   );
 });
 
 withFixture("sxgvary2", () => {
-  const expected = "FAIL";
-  return assertFn(
-    `${linter.SxgVaryOnAcceptAct.name} - no vary on amp-cache-transform`,
-    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}`
+  return assertFail(
+    `${SxgVaryOnAcceptAct.name} - no vary on amp-cache-transform`,
+    runNetworkTest(SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/")
   );
 });
 
 withFixture("sxgvary3", () => {
-  const expected = "FAIL";
-  return assertFn(
-    `${linter.SxgVaryOnAcceptAct.name} - no vary on accept`,
-    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}`
+  return assertFail(
+    `${SxgVaryOnAcceptAct.name} - no vary on accept`,
+    runNetworkTest(SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/")
   );
 });
 
 withFixture("sxgvary4", () => {
-  const expected = "PASS";
-  return assertFn(
-    `${
-      linter.SxgVaryOnAcceptAct.name
-    } - vary on accept and amp-cache-transform`,
-    runTest(linter.SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}`
+  return assertPass(
+    `${SxgVaryOnAcceptAct.name} - vary on accept and amp-cache-transform`,
+    runNetworkTest(SxgVaryOnAcceptAct, "https://boundless-stealer.glitch.me/")
   );
 });
 
 withFixture("sxgconneg1", () => {
-  const expected = "PASS";
-  return assertFn(
-    `${
-      linter.SxgContentNegotiationIsOk.name
-    } - application/signed-exchange supported`,
-    runTest(linter.SxgContentNegotiationIsOk, "https://azei-package-test.com/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}, message: ${
-            res.message
-          }`
+  return assertPass(
+    `${SxgContentNegotiationIsOk.name} - application/signed-exchange supported`,
+    runNetworkTest(SxgContentNegotiationIsOk, "https://azei-package-test.com/")
   );
 });
 
 withFixture("sxgconneg2", () => {
-  const expected = "FAIL";
-  return assertFn(
+  return assertFail(
     `${
-      linter.SxgContentNegotiationIsOk.name
+      SxgContentNegotiationIsOk.name
     } - application/signed-exchange not supported`,
-    runTest(
-      linter.SxgContentNegotiationIsOk,
+    runNetworkTest(
+      SxgContentNegotiationIsOk,
       "https://boundless-stealer.glitch.me/"
-    ),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}, message: ${
-            res.message
-          }`
+    )
   );
 });
 
 withFixture("sxgconneg3", () => {
-  const expected = "FAIL";
-  return assertFn(
+  return assertFail(
     `${
-      linter.SxgContentNegotiationIsOk.name
+      SxgContentNegotiationIsOk.name
     } - application/signed-exchange incorrectly supported`,
-    runTest(linter.SxgContentNegotiationIsOk, "https://azei-package-test.com/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}, message: ${
-            res.message
-          }`
+    runNetworkTest(SxgContentNegotiationIsOk, "https://azei-package-test.com/")
   );
 });
 
 withFixture("sxgamppkg2", () => {
-  const expected = "PASS";
-  return assertFn(
-    `${linter.SxgAmppkgIsForwarded.name} - /amppkg/ is forwarded`,
-    runTest(linter.SxgAmppkgIsForwarded, "https://azei-package-test.com/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}, message: ${
-            res.message
-          }`
+  return assertPass(
+    `${SxgAmppkgIsForwarded.name} - /amppkg/ is forwarded`,
+    runNetworkTest(SxgAmppkgIsForwarded, "https://azei-package-test.com/")
   );
 });
 
 withFixture("sxgamppkg1", () => {
-  const expected = "FAIL";
-  return assertFn(
-    `${linter.SxgAmppkgIsForwarded.name} - /amppkg/ not forwarded (404)`,
-    runTest(
-      linter.SxgAmppkgIsForwarded,
-      "https://boundless-stealer.glitch.me/"
-    ),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}, message: ${
-            res.message
-          }`
+  return assertFail(
+    `${SxgAmppkgIsForwarded.name} - /amppkg/ not forwarded (404)`,
+    runNetworkTest(SxgAmppkgIsForwarded, "https://boundless-stealer.glitch.me/")
   );
 });
 
 withFixture("sxgamppkg3", () => {
-  const expected = "FAIL";
-  return assertFn(
+  return assertFail(
     `${
-      linter.SxgAmppkgIsForwarded.name
+      SxgAmppkgIsForwarded.name
     } - /amppkg/ not forwarded (wrong content-type)`,
-    runTest(linter.SxgAmppkgIsForwarded, "https://azei-package-test.com/"),
-    res =>
-      res.status === expected
-        ? ""
-        : `expected: ${expected}, actual: ${res.status}, message: ${
-            res.message
-          }`
+    runNetworkTest(SxgAmppkgIsForwarded, "https://azei-package-test.com/")
   );
 });
 

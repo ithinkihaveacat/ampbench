@@ -3,7 +3,7 @@ import program from "commander";
 import fetch from "node-fetch";
 import cheerio from "cheerio";
 
-import { testsForType, lint, Message } from ".";
+import { testsForType, lint, Result } from ".";
 import { fetchToCurl } from "./url";
 import { isArray } from "util";
 
@@ -171,8 +171,8 @@ export function easyLint({
 
 export function outputterForType(
   type: string
-): (data: { [key: string]: Message | Message[] }) => string {
-  function flatten(data: { [k: string]: Message | Message[] }): string[][] {
+): (data: { [key: string]: Result | Result[] }) => string {
+  function flatten(data: { [k: string]: Result | Result[] }): string[][] {
     const rows: string[][] = [];
     rows.push(["name", "status", "message"]);
     for (const k of Object.keys(data).sort()) {

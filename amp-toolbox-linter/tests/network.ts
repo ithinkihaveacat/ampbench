@@ -9,20 +9,20 @@ import {
   assertFail,
   assertFnList
 } from "./lib";
-import { StoryMetadataThumbnailsAreOk } from "../src/rule/StoryMetadataThumbnailsAreOk";
+import { StoryMetadataThumbnailsAreOk } from "../src/rules/StoryMetadataThumbnailsAreOk";
 import { Result, Status } from "../src";
-import { LinkRelCanonicalIsOk } from "../src/rule/LinkRelCanonicalIsOk";
-import { AmpVideoIsSmall } from "../src/rule/AmpVideoIsSmall";
-import { BookendAppearsOnOrigin } from "../src/rule/BookendAppearsOnOrigin";
-import { BookendAppearsOnCache } from "../src/rule/BookendAppearsOnCache";
-import { StoryMetadataIsV1 } from "../src/rule/StoryMetadataIsV1";
-import { AmpImgHeightWidthIsOk } from "../src/rule/AmpImgHeightWidthIsOk";
-import { EndpointsAreAccessibleFromOrigin } from "../src/rule/EndpointsAreAccessibleFromOrigin";
-import { EndpointsAreAccessibleFromCache } from "../src/rule/EndpointsAreAccessibleFromCache";
-import { SxgVaryOnAcceptAct } from "../src/rule/SxgVaryOnAcceptAct";
-import { SxgContentNegotiationIsOk } from "../src/rule/SxgContentNegotiationIsOk";
-import { SxgAmppkgIsForwarded } from "../src/rule/SxgAmppkgIsForwarded";
-import { IsValid } from "../src/rule/IsValid";
+import { LinkRelCanonicalIsOk } from "../src/rules/LinkRelCanonicalIsOk";
+import { AmpVideoIsSmall } from "../src/rules/AmpVideoIsSmall";
+import { BookendAppearsOnOrigin } from "../src/rules/BookendAppearsOnOrigin";
+import { BookendAppearsOnCache } from "../src/rules/BookendAppearsOnCache";
+import { StoryMetadataIsV1 } from "../src/rules/StoryMetadataIsV1";
+import { AmpImgHeightWidthIsOk } from "../src/rules/AmpImgHeightWidthIsOk";
+import { EndpointsAreAccessibleFromOrigin } from "../src/rules/EndpointsAreAccessibleFromOrigin";
+import { EndpointsAreAccessibleFromCache } from "../src/rules/EndpointsAreAccessibleFromCache";
+import { SxgVaryOnAcceptAct } from "../src/rules/SxgVaryOnAcceptAct";
+import { SxgContentNegotiationIsOk } from "../src/rules/SxgContentNegotiationIsOk";
+import { SxgAmppkgIsForwarded } from "../src/rules/SxgAmppkgIsForwarded";
+import { IsValid } from "../src/rules/IsValid";
 
 withFixture("thumbnails1", () =>
   assertFnList(

@@ -1,9 +1,9 @@
 import { assertPass, runLocalTest, assertWarn, assertFail } from "./lib";
-import { AmpImgAmpPixelPreferred } from "../src/rule/AmpImgAmpPixelPreferred";
-import { MetaCharsetIsFirst } from "../src/rule/MetaCharsetIsFirst";
-import { RuntimeIsPreloaded } from "../src/rule/RuntimeIsPreloaded";
-import { SchemaMetadataIsNews } from "../src/rule/SchemaMetadataIsNews";
-import { StoryRuntimeIsV1 } from "../src/rule/StoryRuntimeIsV1";
+import { AmpImgAmpPixelPreferred } from "../src/rules/AmpImgAmpPixelPreferred";
+import { MetaCharsetIsFirst } from "../src/rules/MetaCharsetIsFirst";
+import { RuntimeIsPreloaded } from "../src/rules/RuntimeIsPreloaded";
+import { SchemaMetadataIsNews } from "../src/rules/SchemaMetadataIsNews";
+import { StoryRuntimeIsV1 } from "../src/rules/StoryRuntimeIsV1";
 import { basename } from "path";
 
 assertWarn(
